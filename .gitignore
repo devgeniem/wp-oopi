@@ -1,0 +1,5 @@
+# Ignore OSX file system junk
+.DS_Store
+
+# Composer vendor directory
+vendor/

@@ -1,0 +1,31 @@
+{
+    "name": "devgeniem/wp-oopi",
+    "type": "wordpress-plugin",
+    "description": "Oopi is a WordPress importer plugin enabling importing WordPress data from external sources through an object-oriented functional API.",
+    "authors": [
+        {
+            "name": "Ville Siltala",
+            "email": "ville.siltala@geniem.com",
+            "homepage": "http://github.com/villesiltala",
+            "role": "Developer"
+        },
+        {
+            "name": "Timi-Artturi Mäkelä",
+            "email": "timi.makela@geniem.com",
+            "homepage": "https://github.com/Liblastic",
+            "role": "Developer"
+        }
+    ],
+    "keywords": [
+        "wordpress", "plugin", "importer", "geniem"
+    ],
+    "license": "GPL-3.0",
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=7.1",
+        "composer/installers": "^1.0.12"
+    },
+    "autoload": {
+        "psr-4": {"Geniem\\Oopi\\": "src/"}
+    }
+}
