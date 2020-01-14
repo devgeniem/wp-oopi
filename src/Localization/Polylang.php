@@ -47,11 +47,8 @@ class Polylang {
      */
     public static function init() {
         $polylang = function_exists( 'PLL' ) ? PLL() : null;
-        $polylang = $polylang instanceof \PLL_Frontend
-            ? $polylang
-            : null;
 
-        if ( $polylang ) {
+        if ( ! empty( $polylang ) ) {
             /**
              * Get current languages.
              * Returns list of language codes.

@@ -53,13 +53,22 @@ class Plugin {
      * Initialize the plugin.
      */
     public static function init() {
+        // If a custom autoloader exists, use it.
+        if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+            require_once __DIR__ . '/vendor/autoload.php';
+        }
+
         // Set the plugin version.
         $plugin_data       = get_plugin_data( __FILE__, false, false );
         self::$plugin_data = wp_parse_args( $plugin_data, self::$plugin_data );
 
         // Set the basic settings.
         Settings::init( self::$plugin_data );
-        LocalizationController::init();
+
+        // Initialize plugin controllers after plugins are loaded.
+        add_action( 'plugins_loaded', function() {
+            LocalizationController::init();
+        } );
 
         // Load the plugin textdomain.
         load_plugin_textdomain( 'oopi', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
