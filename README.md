@@ -58,7 +58,7 @@ The first step in the import process is to set the data for the importer. This f
       - *The plugin currently supports only image files!*
     - `alt` *(string) (Optional)* The alt text for the image. This is saved into postmeta.
     - `caption` *(string) (Optional)* The file caption text.
-    - `descrpition` *(string) (Optional)* The file description text.
+    - `description` *(string) (Optional)* The file description text.
   - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
   - `taxonomies` *(array) (Optional)* An array of taxonomy objects containing:
     - `slug` *(string) (Required)* The taxonomy term slug.

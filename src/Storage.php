@@ -17,15 +17,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Storage {
 
     /**
+     * Format the storage query key out of a given Oopi id.
+     *
+     * @param int|string $oopi_id The api id to be matched with postmeta.
+     * @return string
+     */
+    public static function format_query_key( $oopi_id ) {
+        return Settings::get( 'id_prefix' ) . $oopi_id;
+    }
+
+    /**
      * Query the WP post id by the given Oopi id.
      *
-     * @param  int $id     The api id to be matched with postmeta.
+     * @param  int|string $id The api id to be matched with postmeta.
      * @return int|boolean The found post id or 'false' for empty results.
      */
     public static function get_post_id_by_oopi_id( $id ) {
         global $wpdb;
         // Concatenate the meta key.
-        $post_meta_key = Settings::get( 'id_prefix' ) . $id;
+        $post_meta_key = static::format_query_key( $id );
         // Prepare the sql.
         $prepared = $wpdb->prepare(
             "SELECT DISTINCT post_id FROM $wpdb->postmeta WHERE meta_key = %s",
