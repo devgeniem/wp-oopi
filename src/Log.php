@@ -193,17 +193,18 @@ class Log {
         $table_name = static::get_table_name();
         $ok_status  = Settings::get( 'log_status_ok' );
 
-        $row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore
-            '
-            SELECT * FROM %s
+        // phpcs:disable
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "
+            SELECT * FROM $table_name
             WHERE post_id = %d
             AND status = %s
             ORDER BY import_date_gmt DESC;
-            ',
-            $table_name,
+            ",
             $post_id,
             $ok_status
         ) );
+        // phpcs:enable
 
         if ( $row !== null ) {
             // Make things visible and help IDEs to interpret the object.
