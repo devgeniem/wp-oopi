@@ -775,8 +775,7 @@ class Post {
                     // oopi_attachment  | 1234
                     update_post_meta( $attachment_post_id, rtrim( $attachment_prefix, '_' ), $attachment_id );
 
-                    // Polylang mananages languages.
-                    // @todo, I think this is set automatically
+                    // Set the attachment locale if Polylang is active.
                     if ( Polylang::pll() ) {
                         $attachment_language = Util::get_prop( $this->i18n, 'locale' );
 
@@ -806,11 +805,14 @@ class Post {
                     'post_excerpt' => Util::get_prop( $attachment, 'caption' ),
                 ];
 
-                // Save the attachement post object data
+                // Save the attachment post object data
                 wp_update_post( $attachment_args );
 
-                // Use caption as an alternative text.
-                $alt_text = Util::get_prop( $attachment, 'caption' );
+                // Get the alt text if set.
+                $alt_text = Util::get_prop( $attachment, 'alt' );
+
+                // If alt was empty, use caption as an alternative text.
+                $alt_text = $alt_text ?: Util::get_prop( $attachment, 'caption' );
 
                 if ( $alt_text ) {
                     // Save image alt text into attachment post meta
@@ -847,6 +849,32 @@ class Post {
             IMAGETYPE_TIFF_II,
             IMAGETYPE_TIFF_MM
         );
+
+        // If the file name does not appear to contain a suffix, add it.
+        if ( strpos( $file_name, '.' ) === false ) {
+            $exif_types = [
+                '.gif',
+                '.jpeg',
+                '.png',
+                '.swf',
+                '.psd',
+                '.bmp',
+                '.tiff',
+                '.tiff',
+                '.jpc',
+                '.jp2',
+                '.jpx',
+                '.jb2',
+                '.swc',
+                '.iff',
+                '.wbmp',
+                '.xbm',
+                '.ico',
+                '.webp',
+            ];
+            // See: https://www.php.net/manual/en/function.exif-imagetype.php#refsect1-function.exif-imagetype-constants
+            $file_name .= $exif_types[ $exif_imagetype - 1 ];
+        }
 
         // Construct file local url.
         $tmp_folder                 = Settings::get( 'tmp_folder' );
