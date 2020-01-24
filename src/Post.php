@@ -297,7 +297,7 @@ class Post {
         }
         // Filter values before validating.
         foreach ( get_object_vars( $this->post ) as $attr => $value ) {
-            $this->post->{$attr} = apply_filters( "geniem_importer_post_value_{$attr}", $value );
+            $this->post->{$attr} = apply_filters( "wp_oopi_post_value_{$attr}", $value );
         }
         // Validate it.
         $this->validate_post( $this->post );
@@ -445,7 +445,7 @@ class Post {
         $this->meta = (array) $meta_data;
         // Filter values before validating.
         foreach ( $this->meta as $key => $value ) {
-            $this->meta[ $key ] = apply_filters( "geniem_importer_meta_value_{$key}", $value );
+            $this->meta[ $key ] = apply_filters( "wp_oopi_meta_value_{$key}", $value );
         }
 
         $this->validate_meta( $this->meta );
@@ -484,8 +484,8 @@ class Post {
         // Force type to array.
         $this->taxonomies = (array) $tax_array;
         // Filter values before validating.
-        foreach ( $this->taxonomies as $key => $value ) {
-            $this->taxonomies[ $key ] = apply_filters( "geniem_importer_taxonomy_{$key}", $value );
+        foreach ( $this->taxonomies as $key => $term ) {
+            $this->taxonomies[ $key ] = apply_filters( "wp_oopi_taxonomy_term", $term );
         }
         $this->validate_taxonomies( $this->taxonomies );
     }
@@ -500,20 +500,20 @@ class Post {
             // @codingStandardsIgnoreStart
             $err = __( "Error in the taxonomies. Taxonomies must be passed in an associative array.", 'geniem-importer' );
             // @codingStandardsIgnoreEnd
-            $this->set_error( 'taxonomy', $taxonomy, $err );
+            $this->set_error( 'taxonomy', $taxonomies, $err );
             return;
         }
 
         // The passed taxonomies must be currently registered.
         $registered_taxonomies = \get_taxonomies();
         foreach ( $taxonomies as $term ) {
-            if ( ! in_array( $term['taxonomy'], $registered_taxonomies, true ) ) {
+            if ( empty( $term['taxonomy'] ) || ! in_array( $term['taxonomy'], $registered_taxonomies, true ) ) {
                 // @codingStandardsIgnoreStart
                 $err = __( "Error in the \"{$term['taxonomy']}\" taxonomy. The taxonomy is not registerd.", 'geniem-importer' );
                 // @codingStandardsIgnoreEnd
-                $this->set_error( 'taxonomy', $taxonomy, $err );
+                $this->set_error( 'taxonomy', $term, $err );
             }
-            apply_filters( 'geniem_importer_validate_taxonomies', $taxonomies );
+            apply_filters( 'wp_oopi_validate_taxonomies', $taxonomies );
         }
     }
 
@@ -528,7 +528,7 @@ class Post {
         // Filter values before validating.
         /* @todo filtering (by name, not $key?)
         foreach ( $this->acf as $key => $value ) {
-            $this->acf[$key] = apply_filters( "geniem_importer_acf_value_{$key}", $value );
+            $this->acf[$key] = apply_filters( "wp_oopi_acf_value_{$key}", $value );
         }
         */
         $this->validate_acf( $this->acf );
@@ -713,7 +713,7 @@ class Post {
 
         // Run custom action for custom data.
         // Use this if the data is not in the postmeta table.
-        do_action( 'geniem_importer_delete_data', $this->post_id );
+        do_action( 'wp_oopi_delete_data', $this->post_id );
     }
 
     /**
@@ -745,7 +745,7 @@ class Post {
 
             if ( empty( $attachment_src ) || empty( $attachment_id ) ) {
                 // @codingStandardsIgnoreStart
-                $this->set_error( 'attachment', $attachment, __( 'The attachment object has missing parameters.', 'geniem_importer' ) );
+                $this->set_error( 'attachment', $attachment, __( 'The attachment object has missing parameters.', 'oopi' ) );
                 // @codingStandardsIgnoreEnd
                 continue;
             }
@@ -759,7 +759,7 @@ class Post {
                 // Something went wrong.
                 if ( is_wp_error( $attachment_post_id ) ) {
                     // @codingStandardsIgnoreStart
-                    $this->set_error( 'attachment', $attachment, __( 'An error occurred uploading the file.', 'geniem_importer' ) );
+                    $this->set_error( 'attachment', $attachment, __( 'An error occurred uploading the file.', 'oopi' ) );
                     // @codingStandardsIgnoreEnd
                 }
 
@@ -998,7 +998,7 @@ class Post {
                     // Set error: attachment did not exist.
                     else {
                         // @codingStandardsIgnoreStart
-                        $this->set_error( 'meta', $key, __( 'Can not save the thumbnail data. The attachment was not found.', 'geniem_importer' ) );
+                        $this->set_error( 'meta', $key, __( 'Can not save the thumbnail data. The attachment was not found.', 'oopi' ) );
                         // @codingStandardsIgnoreEnd
                         unset( $this->meta[ $key ] );
                         continue;
@@ -1113,7 +1113,7 @@ class Post {
         } // End if().
         else {
             // @codingStandardsIgnoreStart
-            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save acf meta fields.', 'geniem_importer' ) );
+            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save acf meta fields.', 'oopi' ) );
             // @codingStandardsIgnoreEnd
         }
 
@@ -1177,7 +1177,7 @@ class Post {
             $post_data['post_modified_gmt'] = \get_gmt_from_date( $this->post->post_modified );
         }
 
-        return apply_filters( 'geniem_importer_pre_post_save', $post_data, $this->oopi_id );
+        return apply_filters( 'wp_oopi_pre_post_save', $post_data, $this->oopi_id );
     }
 
     /**
@@ -1188,7 +1188,7 @@ class Post {
      * @return array
      */
     public function after_post_save( $postarr ) {
-        return apply_filters( 'geniem_importer_after_post_save', $postarr, $this->oopi_id );
+        return apply_filters( 'wp_oopi_after_post_save', $postarr, $this->oopi_id );
     }
 
     /**

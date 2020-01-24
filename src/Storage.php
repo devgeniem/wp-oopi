@@ -155,7 +155,7 @@ class Storage {
         ] );
         // Something went wrong.
         if ( is_wp_error( $result ) ) {
-            $err = __( 'An error occurred creating the taxonomy term.', 'geniem_importer' );
+            $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
             $post->set_error( 'taxonomy', $name, $err );
             return $result;
         }
