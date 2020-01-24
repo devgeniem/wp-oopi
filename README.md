@@ -60,10 +60,12 @@ The first step in the import process is to set the data for the importer. This f
     - `caption` *(string) (Optional)* The file caption text.
     - `description` *(string) (Optional)* The file description text.
   - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
-  - `taxonomies` *(array) (Optional)* An array of taxonomy objects containing:
-    - `slug` *(string) (Required)* The taxonomy term slug.
-    - `name` *(string) (Required)* The taxonomy term display name.
-    - `taxonomy` *(string) (Required)* The taxonomy name, for example `category`.
+  - `taxonomies` *(array) (Optional)* An array containing either-or:
+    - array/object with key-value pairs:
+      - `slug` *(string) (Required)* The taxonomy term slug.
+      - `name` *(string) (Required)* The taxonomy term display name.
+      - `taxonomy` *(string) (Required)* The taxonomy name, for example `category`.
+    - [WP Term](https://developer.wordpress.org/reference/classes/wp_term/) instances 
   - `acf` *(array) (Optional)* An array of Advanced Custom Fields data objects containing:
     - `type` *(string) (Required)* The ACF field type ([types](https://www.advancedcustomfields.com/resources/#field-types)).
     - `key` *(string) (Required)* The ACF field key. This must be the unique key defined for the field.

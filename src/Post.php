@@ -507,9 +507,13 @@ class Post {
         // The passed taxonomies must be currently registered.
         $registered_taxonomies = \get_taxonomies();
         foreach ( $taxonomies as $term ) {
-            if ( empty( $term['taxonomy'] ) || ! in_array( $term['taxonomy'], $registered_taxonomies, true ) ) {
+            if (
+                empty( Util::get_prop( $term, 'taxonomy' ) ) ||
+                ! in_array( Util::get_prop( $term, 'taxonomy' ), $registered_taxonomies, true )
+            ) {
                 // @codingStandardsIgnoreStart
-                $err = __( "Error in the \"{$term['taxonomy']}\" taxonomy. The taxonomy is not registerd.", 'geniem-importer' );
+                $tax = Util::get_prop( $term, 'taxonomy' );
+                $err = __( "Error in the \"$tax\" taxonomy. The taxonomy is not registerd.", 'geniem-importer' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( 'taxonomy', $term, $err );
             }
@@ -1023,17 +1027,22 @@ class Post {
     protected function save_taxonomies() {
         if ( is_array( $this->taxonomies ) ) {
             $term_ids_by_tax = [];
-            foreach ( $this->taxonomies as &$term ) {
-                // Safely get values from the term.
-                $slug     = Util::get_prop( $term, 'slug' );
-                $taxonomy = Util::get_prop( $term, 'taxonomy' );
+            foreach ( $this->taxonomies as &$term_obj ) {
+                if ( ! $term_obj instanceof \WP_Term ) {
+                    // Safely get values from the term.
+                    $slug     = Util::get_prop( $term_obj, 'slug' );
+                    $taxonomy = Util::get_prop( $term_obj, 'taxonomy' );
 
-                // Fetch the term object.
-                $term_obj = get_term_by( 'slug', $slug, $taxonomy );
+                    // Fetch the term object.
+                    $term_obj = get_term_by( 'slug', $slug, $taxonomy );
+                }
+                else {
+                    $taxonomy = $term_obj->taxonomy;
+                }
 
                 // If the term does not exist, create it.
                 if ( ! $term_obj ) {
-                    $term_obj = Storage::create_new_term( $term, $this );
+                    $term_obj = Storage::create_new_term( $term_obj, $this );
                     // @todo check for wp error and continue, edit for ACF taxonomies with similar code
                 }
                 // Add term id.
