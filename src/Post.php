@@ -644,6 +644,11 @@ class Post {
             $this->identify();
         }
 
+        // Save localization data.
+        if ( ! empty( $this->i18n ) ) {
+            Localization\Controller::save_locale( $this );
+        }
+
         // Save attachments.
         if ( ! empty( $this->attachments ) ) {
             $this->save_attachments();
@@ -662,11 +667,6 @@ class Post {
         // Save acf data.
         if ( ! empty( $this->acf ) ) {
             $this->save_acf();
-        }
-
-        // Save localization data.
-        if ( ! empty( $this->i18n ) ) {
-            Localization\Controller::save_locale( $this );
         }
 
         // If this is not forced or a rollback save, check for errors after save process.
