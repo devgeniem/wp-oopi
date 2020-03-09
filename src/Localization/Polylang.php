@@ -10,9 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Classes
+use Geniem\Oopi\Settings;
 use Geniem\Oopi\Storage;
 use Geniem\Oopi\Post;
-use Geniem\Oopi\Settings as Settings;
 use Geniem\Oopi\Util;
 
 /**
@@ -70,6 +70,9 @@ class Polylang {
                     // add_action( 'pll_translate_media', array( __CLASS__, 'get_attachment_post_ids' ), 11, 3 );
                 }
             }
+
+            // Add a filter to prevent copying and synchronizing for Oopi identification data.
+            add_filter( 'pll_copy_post_metas', [ __CLASS__, 'prevent_sync_and_copy_for_oopi_ids' ], 100, 2 );
 
             self::$polylang = $polylang;
         }
@@ -157,7 +160,7 @@ class Polylang {
 
                     // Get master post id for translation linking
                     $oopi_id_prefix = Settings::get( 'id_prefix' );
-                    $master_id      = substr( $master_key, strlen( $oopi_id_prefix ) );
+                    $master_id      = str_replace( $oopi_id_prefix, '', $master_key );
                     $master_post_id = Storage::get_post_id_by_oopi_id( $master_id );
 
                     // Set the link for translations if a matching post was found.
@@ -187,5 +190,22 @@ class Polylang {
                 __( 'Post does not have pll information in right format.', 'geniem-importer' )
             );
         }
+    }
+
+    /**
+     * Prevent PLL from copying or synchronizing Oopi's identification data.
+     *
+     * @param array $keys List of custom field names.
+     *
+     * @return array
+     */
+    public static function prevent_sync_and_copy_for_oopi_ids( $keys ) {
+        $identificator = Storage::get_idenfiticator();
+
+        // Remove Oopi indentificator meta keys.
+        return array_filter( $keys, function( $key ) use ( $identificator ) {
+            // Remove keys with the identificator.
+            return strpos( $key, $identificator ) === false;
+        } );
     }
 }
