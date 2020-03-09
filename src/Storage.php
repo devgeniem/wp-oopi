@@ -27,6 +27,18 @@ class Storage {
     }
 
     /**
+     * Get the Oopi identificator key.
+     *
+     * @return string
+     */
+    public static function get_idenfiticator() : string {
+        $id_prefix = Settings::get( 'id_prefix' );
+
+        // Remove the trailing '_'.
+        return rtrim( $id_prefix, '_' );
+    }
+
+    /**
      * Query the WP post id by the given Oopi id.
      *
      * @param  int|string $id The api id to be matched with postmeta.
