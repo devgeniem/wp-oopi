@@ -73,7 +73,7 @@ class Controller {
         // If Polylang or wpml is not active leave an error message for debugging
         if ( $polylang_activated === false ) {
             // Show an error if translation engines aren't activated and user is willing to translate
-            $err = __( 'Error, translation plugin does not seem to be activated. Please install and activate your desired translation plugin to start translations.', 'geniem-importer' );
+            $err = __( 'Error, translation plugin does not seem to be activated. Please install and activate your desired translation plugin to start translations.', 'oopi' );
             $post->set_error( 'i18n', '', $err );
             return false;
         }

@@ -225,7 +225,7 @@ class Post {
     public function __construct( $oopi_id = null ) {
         if ( null === $oopi_id ) {
             // @codingStandardsIgnoreStart
-            $this->set_error( 'id', 'oopi_id', __( 'A unique id must be set for the Post constructor.', 'geniem-importer' ) );
+            $this->set_error( 'id', 'oopi_id', __( 'A unique id must be set for the Post constructor.', 'oopi' ) );
             // @codingStandardsIgnoreEnd
         } else {
             // Set the Importer id.
@@ -317,7 +317,7 @@ class Post {
         if ( isset( $post_obj->author ) ) {
             $user = \get_userdata( $post_obj->author );
             if ( false === $user ) {
-                $err = __( 'Error in the "author" column. The value must be a valid user id.', 'geniem-importer' );
+                $err = __( 'Error in the "author" column. The value must be a valid user id.', 'oopi' );
                 $this->set_error( $err_scope, 'author', $err );
             }
         }
@@ -341,12 +341,12 @@ class Post {
             $post_statuses = \get_post_statuses();
             if ( 'trash' === $post_obj->post_status ) {
                 // @codingStandardsIgnoreStart
-                $err = __( 'Error in the "post_status" column. The post is currently trashed, please solve before importing.', 'geniem-importer' );
+                $err = __( 'Error in the "post_status" column. The post is currently trashed, please solve before importing.', 'oopi' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( $err_scope, 'post_status', $err );
             } elseif ( ! array_key_exists( $post_obj->post_status, $post_statuses ) ) {
                 // @codingStandardsIgnoreStart
-                $err = __( 'Error in the "post_status" column. The value is not a valid post status.', 'geniem-importer' );
+                $err = __( 'Error in the "post_status" column. The value is not a valid post status.', 'oopi' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( $err_scope, 'post_status', $err );
             }
@@ -357,7 +357,7 @@ class Post {
             $comment_statuses = [ 'hold', 'approve', 'spam', 'trash', 'open', 'closed' ];
             if ( ! in_array( $post_obj->comment_status, $comment_statuses, true ) ) {
                 // @codingStandardsIgnoreStart
-                $err = __( 'Error in the "comment_status" column. The value is not a valid comment status.', 'geniem-importer' );
+                $err = __( 'Error in the "comment_status" column. The value is not a valid comment status.', 'oopi' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( $err_scope, 'comment_status', $err );
             }
@@ -371,7 +371,7 @@ class Post {
                 $parent_post_id = Storage::get_post_id_by_oopi_id( $parent_id );
                 if ( $parent_post_id === false ) {
                     // @codingStandardsIgnoreStart
-                    $err = __( 'Error in the "post_parent" column. The queried post parent was not found.', 'geniem-importer' );
+                    $err = __( 'Error in the "post_parent" column. The queried post parent was not found.', 'oopi' );
                     // @codingStandardsIgnoreEnd
                     $this->set_error( $err_scope, 'menu_order', $err );
                 } else {
@@ -382,7 +382,7 @@ class Post {
                 // The parent is a WP post id.
                 if ( \get_post( $parent_id ) === null ) {
                     // @codingStandardsIgnoreStart
-                    $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'geniem-importer' );
+                    $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'oopi' );
                     // @codingStandardsIgnoreEnd
                     $this->set_error( $err_scope, 'menu_order', $err );
                 }
@@ -392,7 +392,7 @@ class Post {
         // Validate the menu order.
         if ( isset( $post_obj->menu_order ) ) {
             if ( ! is_integer( $post_obj->menu_order ) ) {
-                $err = __( 'Error in the "menu_order" column. The value must be an integer.', 'geniem-importer' );
+                $err = __( 'Error in the "menu_order" column. The value must be an integer.', 'oopi' );
                 $this->set_error( $err_scope, 'menu_order', $err );
             }
         }
@@ -402,7 +402,7 @@ class Post {
             $post_types = get_post_types();
             if ( ! array_key_exists( $post_obj->post_type, $post_types ) ) {
                 // @codingStandardsIgnoreStart
-                $err = __( 'Error in the "post_type" column. The value does not match a registered post type.', 'geniem-importer' );
+                $err = __( 'Error in the "post_type" column. The value does not match a registered post type.', 'oopi' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( $err_scope, 'post_type', $err );
             }
@@ -420,7 +420,7 @@ class Post {
         $valid = \DateTime::createFromFormat( 'Y-m-d H:i:s', $date_string );
         if ( ! $valid ) {
             // @codingStandardsIgnoreStart
-            $err = __( "Error in the \"$col_name\" column. The value is not a valid datetime string.", 'geniem-importer' );
+            $err = __( "Error in the \"$col_name\" column. The value is not a valid datetime string.", 'oopi' );
             // @codingStandardsIgnoreEnd
             $this->set_error( $err_scope, $col_name, $err );
         }
@@ -498,7 +498,7 @@ class Post {
     public function validate_taxonomies( $taxonomies ) {
         if ( ! is_array( $taxonomies ) ) {
             // @codingStandardsIgnoreStart
-            $err = __( "Error in the taxonomies. Taxonomies must be passed in an associative array.", 'geniem-importer' );
+            $err = __( "Error in the taxonomies. Taxonomies must be passed in an associative array.", 'oopi' );
             // @codingStandardsIgnoreEnd
             $this->set_error( 'taxonomy', $taxonomies, $err );
             return;
@@ -513,7 +513,7 @@ class Post {
             ) {
                 // @codingStandardsIgnoreStart
                 $tax = Util::get_prop( $term, 'taxonomy' );
-                $err = __( "Error in the \"$tax\" taxonomy. The taxonomy is not registerd.", 'geniem-importer' );
+                $err = __( "Error in the \"$tax\" taxonomy. The taxonomy is not registerd.", 'oopi' );
                 // @codingStandardsIgnoreEnd
                 $this->set_error( 'taxonomy', $term, $err );
             }
@@ -576,7 +576,7 @@ class Post {
         // Check if data is an array.
         if ( ! is_array( $i18n ) ) {
             // @codingStandardsIgnoreStart
-            $err = __( 'Error in the i18n data. The locale data must be passed in an associative array.', 'geniem-importer' );
+            $err = __( 'Error in the i18n data. The locale data must be passed in an associative array.', 'oopi' );
             // @codingStandardsIgnoreEnd
             $this->set_error( 'i18n', $i18n, $err );
             return;
@@ -584,11 +584,11 @@ class Post {
 
         // Check if locale is set and in the current installation.
         if ( ! isset( $i18n['locale'] ) ) {
-            $err = __( 'Error in the polylang data. The locale is not set.', 'geniem-importer' );
+            $err = __( 'Error in the polylang data. The locale is not set.', 'oopi' );
             $this->set_error( 'i18n', $i18n, $err );
         } elseif ( ! in_array( $i18n['locale'], Polylang::language_list(), true ) ) {
             // @codingStandardsIgnoreStart
-            $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'geniem-importer' );
+            $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'oopi' );
             // @codingStandardsIgnoreEnd
             $this->set_error( 'i18n', $i18n, $err );
         }
@@ -596,7 +596,7 @@ class Post {
         // If a master post is set for the current post, check its validity.
         if ( isset( $i18n['master'] ) ) {
             if ( Util::is_query_id( $i18n['master']['query_key'] ?? '' ) === false ) {
-                $err = __( 'Error in the i18n data. The master query id is missing or invalid.', 'geniem-importer' );
+                $err = __( 'Error in the i18n data. The master query id is missing or invalid.', 'oopi' );
                 $this->set_error( 'i18n', $i18n, $err );
             }
         }
@@ -622,7 +622,7 @@ class Post {
                 new Log( $this );
 
                 throw new PostException(
-                    __( 'The post data was not valid. The import was canceled.', 'geniem-importer' ),
+                    __( 'The post data was not valid. The import was canceled.', 'oopi' ),
                     0,
                     $this->errors
                 );
@@ -637,6 +637,29 @@ class Post {
 
         // Run the WP save function.
         $post_id = wp_insert_post( $post_arr );
+
+        $insert_err = '';
+        if ( empty( $post_id ) ) {
+            $insert_err = __(
+                'An unknown error occurred while inserting the post. The returned post id was empty.', 'oopi'
+            );
+
+        }
+        if ( $post_id instanceof \WP_Error ) {
+            $insert_err = $post_id->get_error_message();
+        }
+        if ( $insert_err ) {
+            $this->set_error( 'post', $post_arr, $insert_err );
+
+            // Log this import.
+            new Log( $this );
+
+            throw new PostException(
+                __( 'Unable to insert post. The import was canceled.', 'oopi' ),
+                0,
+                $this->errors
+            );
+        }
 
         // Identify the post, if not yet done.
         if ( empty( $this->post_id ) ) {
@@ -681,9 +704,9 @@ class Post {
                 // Set the correct error message.
                 $err = $rolled_back ?
                     // Rollback error message
-                    __( 'An error occurred while saving the import data. Rolled back the last successful import.', 'geniem-importer' ) :
+                    __( 'An error occurred while saving the import data. Rolled back the last successful import.', 'oopi' ) :
                     // Default error message
-                    __( 'An error occurred while saving the import data. Set the post status to "draft".', 'geniem-importer' );
+                    __( 'An error occurred while saving the import data. Set the post status to "draft".', 'oopi' );
 
                 throw new PostException(
                     $err,
@@ -986,7 +1009,7 @@ class Post {
                     // If not, set an error and skip thumbnail setting.
                     if ( ! $this->is_saved( 'attachments' ) ) {
                         // @codingStandardsIgnoreStart
-                        $err = __( 'Attachments must be saved before saving the thumbnail id for a post. Discarding saving meta for the key "_thumbnail_id".', 'geniem-importer' );
+                        $err = __( 'Attachments must be saved before saving the thumbnail id for a post. Discarding saving meta for the key "_thumbnail_id".', 'oopi' );
                         // @codingStandardsIgnoreEnd
                         $this->set_error( 'meta', $key, $err );
                         continue;
@@ -1106,7 +1129,7 @@ class Post {
                             if ( ! empty( $attachment_post_id ) ) {
                                 update_field( $key, $attachment_post_id, $this->post_id );
                             } else {
-                                $err = __( 'Trying to set an image in an ACF field that does not exists.', 'geniem-importer' );
+                                $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
                                 $this->set_error( 'acf', 'image_field', $err );
                             }
                             break;

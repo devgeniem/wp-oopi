@@ -187,7 +187,7 @@ class Polylang {
             $post->set_error(
                 'pll',
                 $i18n,
-                __( 'Post does not have pll information in right format.', 'geniem-importer' )
+                __( 'Post does not have pll information in right format.', 'oopi' )
             );
         }
     }
