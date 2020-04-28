@@ -720,8 +720,8 @@ class Post {
         new Log( $this );
 
         // Remove the custom filters.
-        remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ] );
-        remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ] );
+        remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ], 1 );
+        remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ], 1 );
 
         return $post_id;
     }
