@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Renamed old hooks to better reflect the actual functionality:
-    - `wp_oopi_pre_post_save` -> `wp_oopi_pre_insert_post`
-    - `wp_oopi_after_post_save` -> `wp_oopi_after_insert_post`
+    - `wp_oopi_pre_post_save` -> `oopi_pre_insert_post`
+    - `wp_oopi_after_post_save` -> `oopi_after_insert_post`
+
+### Changed
+- Rename all Post class hooks by removing the `wp_` prefix.
 
 ## [0.1.2] - 2020-05-28
 
