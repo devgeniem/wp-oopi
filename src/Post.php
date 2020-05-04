@@ -723,8 +723,8 @@ class Post {
         new Log( $this );
 
         // Remove the custom filters.
-        remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ] );
-        remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ] );
+        remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ], 1 );
+        remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ], 1 );
 
         // Hook for running functionalities after saving the post.
         do_action( 'wp_oopi_after_post_save', $this );
