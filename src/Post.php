@@ -1192,7 +1192,7 @@ class Post {
     }
 
     /**
-     * This function creates a filter for the 'wp_insert_posts_data' hook
+     * This function creates a filter for the 'wp_insert_post_data' hook
      * which is enabled only while importing post data with Oopi.
      * Use this to customize the imported data before any database actions.
      *
@@ -1219,7 +1219,7 @@ class Post {
     }
 
     /**
-     * This function creates a filter for the 'wp_insert_posts_data' action hook.
+     * This function creates a filter for the 'wp_insert_post_data' action hook.
      * Use this to customize the imported data after 'wp_insert_post()' is run.
      *
      * @param array $postarr Post data array.
