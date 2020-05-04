@@ -14,6 +14,7 @@
 
 namespace Geniem\Oopi;
 
+use Geniem\Oopi\Integration\RediPress;
 use Geniem\Oopi\Localization\Controller as LocalizationController;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -68,6 +69,7 @@ class Plugin {
         // Initialize plugin controllers after plugins are loaded.
         add_action( 'plugins_loaded', function() {
             LocalizationController::init();
+            ( new RediPress() )->integrate();
         } );
 
         // Load the plugin textdomain.

@@ -629,6 +629,9 @@ class Post {
             }
         }
 
+        // Hook for running functionalities before saving the post.
+        do_action( 'wp_oopi_before_post_save', $this );
+
         $post_arr = (array) $this->post;
 
         // Add filters for data modifications before and after importer related database actions.
@@ -722,6 +725,9 @@ class Post {
         // Remove the custom filters.
         remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ] );
         remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ] );
+
+        // Hook for running functionalities after saving the post.
+        do_action( 'wp_oopi_after_post_save', $this );
 
         return $post_id;
     }
