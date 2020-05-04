@@ -18,8 +18,8 @@ class RediPress {
      * Add hooks for integrations.
      */
     public function integrate() {
-        add_action( 'wp_oopi_before_post_save', 1 );
-        add_action( 'wp_oopi_after_post_save', 1, 1 );
+        add_action( 'wp_oopi_before_post_save', [ $this, 'before_post_save' ], 1, 0 );
+        add_action( 'wp_oopi_after_post_save', [ $this, 'after_post_save' ], 1, 1 );
     }
 
     /**
