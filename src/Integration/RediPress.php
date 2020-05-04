@@ -25,7 +25,7 @@ class RediPress {
     /**
      * Run before saving a post.
      */
-    public function before_save_post() {
+    public function before_post_save() {
         // Disable writing to disk during an import.
         add_filter( 'redipress/write_to_disk', '__return_false' );
     }
@@ -35,7 +35,7 @@ class RediPress {
      *
      * @param Post $post Oopi post.
      */
-    public function after_save_post( Post $post ) {
+    public function after_post_save( Post $post ) {
         $index = apply_filters( 'redipress/index_instance', null ); // phpcs:ignore
         if ( $index instanceof \Geniem\RediPress\Index\Index ) {
             // Enable writing to disk,
