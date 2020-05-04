@@ -38,12 +38,12 @@ class RediPress {
     public function after_post_save( Post $post ) {
         $index = apply_filters( 'redipress/index_instance', null ); // phpcs:ignore
         if ( $index instanceof \Geniem\RediPress\Index\Index ) {
-            // Enable writing to disk,
-            $index->write_to_disk();
             // Index the post.
             if ( is_int( $post->get_post_id() ) ) {
                 do_action( 'redipress/cli/index_single', $post->get_post_id() ); // phpcs:ignore
             }
+            // Enable writing to disk,
+            $index->write_to_disk();
         }
     }
 }
