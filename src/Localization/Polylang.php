@@ -60,12 +60,6 @@ class Polylang {
 
                 // Check if media duplication is on.
                 if ( $polylang->model->options['media_support'] && $polylang->options['media']['duplicate'] ?? 0 ) {
-
-                    // Needed for PLL_Admin_Advanced_Media.
-                    $polylang->filters_media = new \PLL_Admin_Filters_Media( $polylang );
-
-                    // Activates media duplication.
-                    $polylang->oopi_advanced_media = new \PLL_Admin_Advanced_Media( $polylang );
                     // Hook into media duplication so we can add attachment_id meta.
                     // add_action( 'pll_translate_media', array( __CLASS__, 'get_attachment_post_ids' ), 11, 3 );
                 }
