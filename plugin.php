@@ -66,7 +66,7 @@ class Plugin {
         Settings::init( self::$plugin_data );
 
         // Initialize plugin controllers after plugins are loaded.
-        add_action( 'plugins_loaded', function() {
+        add_action( 'wp_loaded', function() {
             LocalizationController::init();
         } );
 
