@@ -297,7 +297,7 @@ class Post {
         }
         // Filter values before validating.
         foreach ( get_object_vars( $this->post ) as $attr => $value ) {
-            $this->post->{$attr} = apply_filters( "wp_oopi_post_value_{$attr}", $value );
+            $this->post->{$attr} = apply_filters( "oopi_post_value_{$attr}", $value );
         }
         // Validate it.
         $this->validate_post( $this->post );
@@ -445,7 +445,7 @@ class Post {
         $this->meta = (array) $meta_data;
         // Filter values before validating.
         foreach ( $this->meta as $key => $value ) {
-            $this->meta[ $key ] = apply_filters( "wp_oopi_meta_value_{$key}", $value );
+            $this->meta[ $key ] = apply_filters( "oopi_meta_value_{$key}", $value );
         }
 
         $this->validate_meta( $this->meta );
@@ -485,7 +485,7 @@ class Post {
         $this->taxonomies = (array) $tax_array;
         // Filter values before validating.
         foreach ( $this->taxonomies as $key => $term ) {
-            $this->taxonomies[ $key ] = apply_filters( "wp_oopi_taxonomy_term", $term );
+            $this->taxonomies[ $key ] = apply_filters( "oopi_taxonomy_term", $term );
         }
         $this->validate_taxonomies( $this->taxonomies );
     }
@@ -517,7 +517,7 @@ class Post {
                 // @codingStandardsIgnoreEnd
                 $this->set_error( 'taxonomy', $term, $err );
             }
-            apply_filters( 'wp_oopi_validate_taxonomies', $taxonomies );
+            apply_filters( 'oopi_validate_taxonomies', $taxonomies );
         }
     }
 
@@ -532,7 +532,7 @@ class Post {
         // Filter values before validating.
         /* @todo filtering (by name, not $key?)
         foreach ( $this->acf as $key => $value ) {
-            $this->acf[$key] = apply_filters( "wp_oopi_acf_value_{$key}", $value );
+            $this->acf[$key] = apply_filters( "oopi_acf_value_{$key}", $value );
         }
         */
         $this->validate_acf( $this->acf );
@@ -629,11 +629,14 @@ class Post {
             }
         }
 
+        // Hook for running functionalities before saving the post.
+        do_action( 'oopi_before_post_save', $this );
+
         $post_arr = (array) $this->post;
 
         // Add filters for data modifications before and after importer related database actions.
-        add_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ], 1 );
-        add_filter( 'wp_insert_post', [ $this, 'after_post_save' ], 1 );
+        add_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
+        add_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
 
         // Run the WP save function.
         $post_id = wp_insert_post( $post_arr );
@@ -720,8 +723,11 @@ class Post {
         new Log( $this );
 
         // Remove the custom filters.
-        remove_filter( 'wp_insert_post_data', [ $this, 'pre_post_save' ], 1 );
-        remove_filter( 'wp_insert_post', [ $this, 'after_post_save' ], 1 );
+        remove_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
+        remove_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
+
+        // Hook for running functionalities after saving the post.
+        do_action( 'oopi_after_post_save', $this );
 
         return $post_id;
     }
@@ -740,7 +746,7 @@ class Post {
 
         // Run custom action for custom data.
         // Use this if the data is not in the postmeta table.
-        do_action( 'wp_oopi_delete_data', $this->post_id );
+        do_action( 'oopi_delete_data', $this->post_id );
     }
 
     /**
@@ -1186,7 +1192,7 @@ class Post {
     }
 
     /**
-     * This function creates a filter for the 'wp_insert_posts_data' hook
+     * This function creates a filter for the 'wp_insert_post_data' hook
      * which is enabled only while importing post data with Oopi.
      * Use this to customize the imported data before any database actions.
      *
@@ -1194,7 +1200,7 @@ class Post {
      *
      * @return mixed
      */
-    public function pre_post_save( $post_data ) {
+    public function pre_insert_post( $post_data ) {
         // If this instance has time values, set them here and override WP automation.
         if ( isset( $this->post->post_date ) &&
              $this->post->post_date !== '0000-00-00 00:00:00'
@@ -1209,18 +1215,18 @@ class Post {
             $post_data['post_modified_gmt'] = \get_gmt_from_date( $this->post->post_modified );
         }
 
-        return apply_filters( 'wp_oopi_pre_post_save', $post_data, $this->oopi_id );
+        return apply_filters( 'oopi_pre_insert_post', $post_data, $this->oopi_id );
     }
 
     /**
-     * This function creates a filter for the 'wp_insert_posts_data'
-     * Use this to customize the imported data after any database actions.
+     * This function creates a filter for the 'wp_insert_post_data' action hook.
+     * Use this to customize the imported data after 'wp_insert_post()' is run.
      *
      * @param array $postarr Post data array.
      * @return array
      */
-    public function after_post_save( $postarr ) {
-        return apply_filters( 'wp_oopi_after_post_save', $postarr, $this->oopi_id );
+    public function after_insert_post( $postarr ) {
+        return apply_filters( 'oopi_after_insert_post', $postarr, $this->oopi_id );
     }
 
     /**
