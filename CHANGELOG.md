@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Localize newly created terms if i18n data is added for the Post object.
+- Try to prevent the post name from getting a number suffix
+  when translating posts with Polylang by updating the post data
+  with the original post name after setting the language.
+
+### Changed
+- Allow i18n data to be set as an associative array or an object.
+
 ## [0.2.0] - 2020-05-20
 
 ### Fixed

@@ -128,15 +128,23 @@ class Polylang {
 
         // Get needed variables
         $post_id = $post->get_post_id();
+        $wp_post = get_post( $post_id );
         $i18n    = $post->get_i18n();
-        $locale  = Util::get_prop( $i18n, 'locale' );
+        $locale  = Util::get_prop( $i18n, 'locale', false );
         $master  = Util::get_prop( $i18n, 'master', false );
 
-        // If pll information is in wrong format
-        if ( is_array( $i18n ) ) {
+        if ( $locale && $master ) {
 
             // Set post locale.
             \pll_set_post_language( $post_id, $locale );
+
+            if ( $post->get_post_name() !== $wp_post->post_name ) {
+                // Update post name to allow PLL to handle unique slugs.
+                wp_update_post( [
+                    'ID'        => $post,
+                    'post_name' => $post->get_post_name(),
+                ] );
+            }
 
             // Run only if master exists
             if ( $master ) {
@@ -181,9 +189,21 @@ class Polylang {
             $post->set_error(
                 'pll',
                 $i18n,
-                __( 'Post does not have pll information in right format.', 'oopi' )
+                __( 'i18n information is set, but it is missing data.', 'oopi' )
             );
         }
+    }
+
+    /**
+     * Sets the term language.
+     *
+     * @param int    $term_id  The WP term id.
+     * @param string $language The language slug.
+     *
+     * @return void
+     */
+    public static function set_term_language( int $term_id, string $language ) {
+        pll_set_term_language( $term_id, $language );
     }
 
     /**

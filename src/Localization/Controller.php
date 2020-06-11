@@ -7,6 +7,7 @@ namespace Geniem\Oopi\Localization;
 
 // Classes
 use Geniem\Oopi\Post as Post;
+use Geniem\Oopi\Util;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -27,15 +28,14 @@ class Controller {
     }
 
     /**
-     * Saves plugin with your installed WordPress translation plugin.
-     * The actual locale saving is happening in Plugin specific classes
-     * Geniem\Oopi\Localization\Polylang and Geniem\Oopi\Localization\WPML
+     * Saves language data with your installed WordPress translation plugin.
+     * The actual language saving is done in corresponding plugin classes.
      *
      * @param Post $post Instance of the Post class.
      *
      * @return boolean
      */
-    public static function save_locale( &$post ) {
+    public static function save_language( &$post ) {
 
         // Check which translation plugin should be used
         $activated_i18n_plugin = self::get_activated_i18n_plugin( $post );
@@ -49,6 +49,38 @@ class Controller {
         if ( $activated_i18n_plugin === 'polylang' ) {
             Polylang::save_pll_locale( $post );
         }
+    }
+
+    /**
+     * Saves WP term language data with your installed WordPress translation plugin.
+     * The actual language saving is done in corresponding plugin classes.
+     *
+     * @param int  $term_id The WP term id.
+     * @param Post $post    The Oopi post.
+     *
+     * @return boolean
+     */
+    public static function set_term_language( int $term_id, Post $post ) {
+
+        // Check which translation plugin should be used
+        $activated_i18n_plugin = self::get_activated_i18n_plugin( $post );
+
+        // If no translation plugin was detected.
+        if ( $activated_i18n_plugin === false ) {
+            return false;
+        }
+
+        // If Polylang is activated use Polylang.
+        if ( $activated_i18n_plugin === 'polylang' ) {
+            $i18n   = $post->get_i18n();
+            $locale = Util::get_prop( $i18n, 'locale', '' );
+
+            Polylang::set_term_language( $term_id, $locale );
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

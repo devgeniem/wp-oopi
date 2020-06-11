@@ -70,7 +70,7 @@ The first step in the import process is to set the data for the importer. This f
     - `type` *(string) (Required)* The ACF field type ([types](https://www.advancedcustomfields.com/resources/#field-types)).
     - `key` *(string) (Required)* The ACF field key. This must be the unique key defined for the field.
     - `value` *(mixed) (Required)* The data value matching the field type specifications.
-  - `i18n` *(object) (Optional)* Custom localization information is stored in the property. It must contain an object with the following properties:
+  - `i18n` *(object|array) (Optional)* Custom localization information is stored in the property. It must contain an object/array with the following properties/keys:
     - `locale` *(string) (Required)* The language code string, for example `fi`.
     - `master` *(string|object) (Required)* A `oopi_id` value to be used to fetch a default language post or an array containing a `query_key` value. This is used to link the post as a translation.
 

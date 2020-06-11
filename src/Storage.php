@@ -148,7 +148,7 @@ class Storage {
      * Create a new term.
      *
      * @param  array $term Term data.
-     * @param  Post  $post The current post instance.
+     * @param  Post  $post The current Oopi post instance.
      *
      * @return object|\WP_Error An array containing the `term_id` and `term_taxonomy_id`,
      *                        WP_Error otherwise.
@@ -170,6 +170,12 @@ class Storage {
             $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
             $post->set_error( 'taxonomy', $name, $err );
             return $result;
+        }
+
+        // Handle localization.
+        $term_id = $result['term_id'] ?? false;
+        if ( $post->get_i18n() && $term_id ) {
+            Localization\Controller::set_term_language( $result['term_id'], $post );
         }
 
         return (object) $result;

@@ -140,6 +140,15 @@ class Post {
     }
 
     /**
+     * Getter for the post name in the set post data.
+     *
+     * @return string
+     */
+    public function get_post_name() {
+        return $this->post->post_name ?? '';
+    }
+
+    /**
      * Getter for ig_id
      *
      * @return string
@@ -273,7 +282,7 @@ class Post {
         }
 
         // If post object has i18n object property set post language
-        if ( isset( $raw_post->i18n ) && is_array( $raw_post->i18n ) ) {
+        if ( isset( $raw_post->i18n ) ) {
             $this->set_i18n( $raw_post->i18n );
         }
     }
@@ -573,20 +582,12 @@ class Post {
             return;
         }
 
-        // Check if data is an array.
-        if ( ! is_array( $i18n ) ) {
-            // @codingStandardsIgnoreStart
-            $err = __( 'Error in the i18n data. The locale data must be passed in an associative array.', 'oopi' );
-            // @codingStandardsIgnoreEnd
-            $this->set_error( 'i18n', $i18n, $err );
-            return;
-        }
-
         // Check if locale is set and in the current installation.
-        if ( ! isset( $i18n['locale'] ) ) {
+        if ( ! Util::get_prop( $i18n, 'locale' ) ) {
             $err = __( 'Error in the polylang data. The locale is not set.', 'oopi' );
             $this->set_error( 'i18n', $i18n, $err );
-        } elseif ( ! in_array( $i18n['locale'], Polylang::language_list(), true ) ) {
+        }
+        elseif ( ! in_array( Util::get_prop( $i18n, 'locale' ), Polylang::language_list(), true ) ) {
             // @codingStandardsIgnoreStart
             $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'oopi' );
             // @codingStandardsIgnoreEnd
@@ -594,8 +595,9 @@ class Post {
         }
 
         // If a master post is set for the current post, check its validity.
-        if ( isset( $i18n['master'] ) ) {
-            if ( Util::is_query_id( $i18n['master']['query_key'] ?? '' ) === false ) {
+        $master = Util::get_prop( $i18n, 'master', false );
+        if ( $master ) {
+            if ( Util::is_query_id( Util::get_prop( $master, 'query_key', '' ) ) === false ) {
                 $err = __( 'Error in the i18n data. The master query id is missing or invalid.', 'oopi' );
                 $this->set_error( 'i18n', $i18n, $err );
             }
@@ -672,7 +674,7 @@ class Post {
 
         // Save localization data.
         if ( ! empty( $this->i18n ) ) {
-            Localization\Controller::save_locale( $this );
+            Localization\Controller::save_language( $this );
         }
 
         // Save attachments.
