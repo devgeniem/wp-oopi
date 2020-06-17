@@ -1052,34 +1052,41 @@ class Post {
     /**
      * Sets the terms of a post and create taxonomy terms
      * if they do not exist yet.
-     *
-     * @todo make similar to acf taxonomies
      */
     protected function save_taxonomies() {
         if ( is_array( $this->taxonomies ) ) {
             $term_ids_by_tax = [];
-            foreach ( $this->taxonomies as &$term_obj ) {
-                if ( ! $term_obj instanceof \WP_Term ) {
-                    // Safely get values from the term.
-                    $slug     = Util::get_prop( $term_obj, 'slug' );
-                    $taxonomy = Util::get_prop( $term_obj, 'taxonomy' );
-
-                    // Fetch the term object.
-                    $term_obj = get_term_by( 'slug', $slug, $taxonomy );
+            foreach ( $this->taxonomies as $term_data ) {
+                if ( $term_data instanceof \WP_Term ) {
+                    $term_obj = $term_data;
+                    $taxonomy = $term_obj->taxonomy;
                 }
                 else {
-                    $taxonomy = $term_obj->taxonomy;
+                    // Safely get values from the term.
+                    $slug     = Util::get_prop( $term_data, 'slug' );
+                    $taxonomy = Util::get_prop( $term_data, 'taxonomy' );
+
+                    // Fetch the term object.
+                    $term_obj = Storage::get_term_by_slug( $slug, $taxonomy );
                 }
 
                 // If the term does not exist, create it.
                 if ( ! $term_obj ) {
-                    $term_obj = Storage::create_new_term( $term_obj, $this );
-                    // @todo check for wp error and continue, edit for ACF taxonomies with similar code
+                    $term_obj = Storage::create_new_term( (array) $term_data, $this );
+                    if ( is_wp_error( $term_obj ) ) {
+                        // Skip erroneous terms.
+                        continue;
+                    }
                 }
+
+                // Handle localization.
+                Localization\Controller::set_term_language( $term_obj->term_id, $this );
+
                 // Add term id.
                 if ( isset( $term_ids_by_tax[ $taxonomy ] ) ) {
                     $term_ids_by_tax[ $taxonomy ][] = $term_obj->term_id;
-                } else {
+                }
+                else {
                     $term_ids_by_tax[ $taxonomy ] = [ $term_obj->term_id ];
                 }
             }
@@ -1098,63 +1105,67 @@ class Post {
      */
     protected function save_acf() {
 
-        // If ACF is activated
-        if ( function_exists( 'get_field' ) ) {
+        // Bail if ACF is not activated.
+        if ( ! function_exists( 'get_field' ) ) {
+            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save ACF data.', 'oopi' ) ); // phpcs:ignore
+            return;
+        }
 
-            if ( is_array( $this->acf ) ) {
+        if ( ! is_array( $this->acf ) ) {
+            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields data is set but it is not an array.', 'oopi' ) ); // phpcs:ignore
+            return;
+        }
 
-                foreach ( $this->acf as $acf_row ) {
-                    // The key must be set.
-                    if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
-                        continue;
+        foreach ( $this->acf as $acf_row ) {
+            // The key must be set.
+            if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
+                continue;
+            }
+
+            $type  = Util::get_prop( $acf_row, 'type', 'default' );
+            $key   = Util::get_prop( $acf_row, 'key', '' );
+            $value = Util::get_prop( $acf_row, 'value', '' );
+
+            switch ( $type ) {
+                case 'taxonomy':
+                    $terms = [];
+                    foreach ( $value as $term ) {
+                        $term_slug     = Util::get_prop( $term, 'slug' );
+                        $term_taxonomy = Util::get_prop( $term, 'taxonomy' );
+                        $term_obj      = Storage::get_term_by_slug( $slug, $taxonomy );
+                        // If the term does not exist, create it.
+                        if ( ! $term_obj ) {
+                            $term_obj = Storage::create_new_term( $term, $this );
+                            if ( is_wp_error( $term_obj ) ) {
+                                // Skip erroneous terms.
+                                continue;
+                            }
+                        }
+                        $terms[] = (int) $term_obj->term_id;
                     }
-
-                    $type  = Util::get_prop( $acf_row, 'type', 'default' );
-                    $key   = Util::get_prop( $acf_row, 'key', '' );
-                    $value = Util::get_prop( $acf_row, 'value', '' );
-
-                    switch ( $type ) {
-                        case 'taxonomy':
-                            $terms = [];
-                            foreach ( $value as &$term ) {
-                                $term_slug = Util::get_prop( $term, 'slug' );
-                                $term_taxonomy = Util::get_prop( $term, 'taxonomy' );
-                                $term_obj = \get_term_by( 'slug', $term_slug, $term_taxonomy );
-                                // If the term does not exist, create it.
-                                if ( ! $term_obj ) {
-                                    $term_obj = Storage::create_new_term( $term, $this );
-                                }
-                                $terms[] = (int) $term_obj->term_id;
-                            }
-                            if ( count( $terms ) ) {
-                                update_field( $key, $terms, $this->post_id );
-                            }
-                            break;
-
-                        case 'image':
-                            // Check if image exists.
-                            $attachment_post_id = $this->attachment_ids[ $value ];
-                            if ( ! empty( $attachment_post_id ) ) {
-                                update_field( $key, $attachment_post_id, $this->post_id );
-                            } else {
-                                $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
-                                $this->set_error( 'acf', 'image_field', $err );
-                            }
-                            break;
-
-                        // @todo Test which field types require no extra logic.
-                        // Currently tested: 'select'
-                        default:
-                            update_field( $key, $value, $this->post_id );
-                            break;
+                    if ( count( $terms ) ) {
+                        update_field( $key, $terms, $this->post_id );
                     }
-                } // End foreach().
-            } // End if().
-        } // End if().
-        else {
-            // @codingStandardsIgnoreStart
-            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save acf meta fields.', 'oopi' ) );
-            // @codingStandardsIgnoreEnd
+                    break;
+
+                case 'image':
+                    // Check if image exists.
+                    $attachment_post_id = $this->attachment_ids[ $value ];
+                    if ( ! empty( $attachment_post_id ) ) {
+                        update_field( $key, $attachment_post_id, $this->post_id );
+                    }
+                    else {
+                        $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
+                        $this->set_error( 'acf', 'image_field', $err );
+                    }
+                    break;
+
+                // @todo Test which field types require no extra logic.
+                // Currently tested: 'select'
+                default:
+                    update_field( $key, $value, $this->post_id );
+                    break;
+            }
         }
 
         // This functions is done.

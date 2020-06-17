@@ -7,10 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Localize newly created terms if i18n data is added for the Post object.
+- Localize all terms in translated taxonomies if i18n data is added for the Post object.
 - Try to prevent the post name from getting a number suffix
   when translating posts with Polylang by updating the post data
   with the original post name after setting the language.
+- Add a language agnostic term finding method to Storage class. Use it to find terms by slug.
 
 ### Changed
 - Allow i18n data to be set as an associative array or an object.

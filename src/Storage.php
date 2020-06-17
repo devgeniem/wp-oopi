@@ -145,6 +145,32 @@ class Storage {
     }
 
     /**
+     * Fetch a WP term by its slug.
+     *
+     * @param string $slug     The term slug.
+     * @param string $taxonomy The taxonomy slug.
+     * @return \WP_Term|null A term object or null if none found.
+     */
+    public static function get_term_by_slug( string $slug, string $taxonomy ) : ?\WP_Term {
+        $terms = get_terms(
+            [
+                'slug'            => $slug,
+                'get'             => 'all',
+                'number'          => 1,
+                'taxonomy'        => $taxonomy,
+                'suppress_filter' => true, // No filtering allowed to get raw objects.
+                'lang'            => '', // For Polylang, ignores language filters.
+            ]
+        );
+
+        if ( is_wp_error( $terms ) || empty( $terms ) ) {
+            return null;
+        }
+
+        return $terms[0];
+    }
+
+    /**
      * Create a new term.
      *
      * @param  array $term Term data.
@@ -154,28 +180,26 @@ class Storage {
      *                        WP_Error otherwise.
      */
     public static function create_new_term( array $term, Post $post ) {
-        $taxonomy = $term['taxonomy'];
-        $name     = $term['name'];
-        $slug     = $term['slug'];
+        $taxonomy = $term['taxonomy'] ?? '';
+        $name     = $term['name'] ?? '';
+        $slug     = $term['slug'] ?? '';
         // There might be a parent set.
         $parent = isset( $term['parent'] ) ? get_term_by( 'slug', $term['parent'], $taxonomy ) : false;
         // Insert the new term.
-        $result = wp_insert_term( $name, $taxonomy, [
-            'slug'        => $slug,
-            'description' => isset( $term['description'] ) ? $term['description'] : '',
-            'parent'      => $parent ? $parent->term_id : 0,
-        ] );
+        $result = wp_insert_term(
+            $name,
+            $taxonomy,
+            [
+                'slug'        => $slug,
+                'description' => isset( $term['description'] ) ? $term['description'] : '',
+                'parent'      => $parent ? $parent->term_id : 0,
+            ]
+        );
         // Something went wrong.
         if ( is_wp_error( $result ) ) {
             $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
             $post->set_error( 'taxonomy', $name, $err );
             return $result;
-        }
-
-        // Handle localization.
-        $term_id = $result['term_id'] ?? false;
-        if ( $post->get_i18n() && $term_id ) {
-            Localization\Controller::set_term_language( $result['term_id'], $post );
         }
 
         return (object) $result;

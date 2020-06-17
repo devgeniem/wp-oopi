@@ -140,10 +140,12 @@ class Polylang {
 
             if ( $post->get_post_name() !== $wp_post->post_name ) {
                 // Update post name to allow PLL to handle unique slugs.
-                wp_update_post( [
-                    'ID'        => $post,
-                    'post_name' => $post->get_post_name(),
-                ] );
+                wp_update_post(
+                    [
+                        'ID'        => $post,
+                        'post_name' => $post->get_post_name(),
+                    ]
+                );
             }
 
             // Run only if master exists
@@ -168,19 +170,19 @@ class Polylang {
                     // Set the link for translations if a matching post was found.
                     if ( $master_post_id ) {
 
-                            // Get current translation.
-                            $current_translations = \pll_get_post_translations( $master_post_id );
+                        // Get current translation.
+                        $current_translations = \pll_get_post_translations( $master_post_id );
 
-                            // Set up new translations.
-                            $new_translations = [
-                                'post_id' => $master_post_id,
-                                $locale   => $post_id,
-                            ];
+                        // Set up new translations.
+                        $new_translations = [
+                            'post_id' => $master_post_id,
+                            $locale   => $post_id,
+                        ];
 
-                            $parsed_args = \wp_parse_args( $new_translations, $current_translations );
+                        $parsed_args = \wp_parse_args( $new_translations, $current_translations );
 
-                            // Add and link translation.
-                            \pll_save_post_translations( $parsed_args );
+                        // Add and link translation.
+                        \pll_save_post_translations( $parsed_args );
                     }
                 }
             }
@@ -203,6 +205,18 @@ class Polylang {
      * @return void
      */
     public static function set_term_language( int $term_id, string $language ) {
+        $term = get_term( $term_id );
+
+        // Bail if no term was found or the taxonomy is not translated.
+        if ( ! $term instanceof \WP_Term || ! pll_is_translated_taxonomy( $term->taxonomy ) ) {
+            return;
+        }
+
+        if ( empty( $locale ) ) {
+            // Set the default language if no language was set.
+            $language = pll_default_language();
+        }
+
         pll_set_term_language( $term_id, $language );
     }
 
