@@ -59,7 +59,7 @@ class Plugin {
         }
 
         // Set the plugin version.
-        $plugin_data       = get_plugin_data( __FILE__, false, false );
+        $plugin_data       = get_file_data( __FILE__, [ 'Version' => 'Version' ], 'plugin' );
         self::$plugin_data = wp_parse_args( $plugin_data, self::$plugin_data );
 
         // Set the basic settings.
