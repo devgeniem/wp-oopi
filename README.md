@@ -61,18 +61,18 @@ The first step in the import process is to set the data for the importer. This f
     - `description` *(string) (Optional)* The file description text.
   - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
   - `taxonomies` *(array) (Optional)* An array containing either-or:
-    - array/object with key-value pairs:
+    - *(Geniem\Oopi\Term)* Oopi Term object.
+      - _If the Oopi term holds a WP_Term object, importing will override existing term data._
+    - *(array|object)* Raw data will be mapped into a Term object. 
+      - `oopi_id` *(string) (Required)* All terms must contain an id. 
       - `slug` *(string) (Required)* The taxonomy term slug.
       - `name` *(string) (Required)* The taxonomy term display name.
       - `taxonomy` *(string) (Required)* The taxonomy name, for example `category`.
-    - [WP Term](https://developer.wordpress.org/reference/classes/wp_term/) instances 
   - `acf` *(array) (Optional)* An array of Advanced Custom Fields data objects containing:
     - `type` *(string) (Required)* The ACF field type ([types](https://www.advancedcustomfields.com/resources/#field-types)).
     - `key` *(string) (Required)* The ACF field key. This must be the unique key defined for the field.
     - `value` *(mixed) (Required)* The data value matching the field type specifications.
-  - `i18n` *(object|array) (Optional)* Custom localization information is stored in the property. It must contain an object/array with the following properties/keys:
-    - `locale` *(string) (Required)* The language code string, for example `fi`.
-    - `master` *(string|object) (Required)* A `oopi_id` value to be used to fetch a default language post or an array containing a `query_key` value. This is used to link the post as a translation.
+  - `language` *(Geniem\Oopi\Language|object|array) (Optional)* Localization information in an Oopi Language object or raw data. Raw data will be converted into a Language instance.
 
 #### Example usage
 

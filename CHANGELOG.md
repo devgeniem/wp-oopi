@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Localize all terms in translated taxonomies if i18n data is added for the Post object.
+- New typed classes for taxonomy term and language data.
+  - Geniem\Oopi\Term
+  - Geniem\Oopi\Language
+- Localize newly created terms if language data is added for the Post object.
 - Try to prevent the post name from getting a number suffix
   when translating posts with Polylang by updating the post data
   with the original post name after setting the language.
 - Add a language agnostic term finding method to Storage class. Use it to find terms by slug.
 
 ### Changed
-- Allow i18n data to be set as an associative array or an object.
+- Allow language data to be set as an associative array or an object. Map data into a Geniem\Oopi\Language object.
+- Simplify Oopi id handling in get_post_id_by_oopi_id().
+- The `i18n` is now deprecated, but still functioning if set. The data is mapped into a Geniem\Oopi\Language object.
+- Taxonomy term data must contain an `oopi_id` for identification.
 
 ## [0.2.0] - 2020-05-20
 

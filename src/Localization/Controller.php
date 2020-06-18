@@ -7,6 +7,7 @@ namespace Geniem\Oopi\Localization;
 
 // Classes
 use Geniem\Oopi\Post as Post;
+use Geniem\Oopi\Term;
 use Geniem\Oopi\Util;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,12 +56,12 @@ class Controller {
      * Saves WP term language data with your installed WordPress translation plugin.
      * The actual language saving is done in corresponding plugin classes.
      *
-     * @param int  $term_id The WP term id.
-     * @param Post $post    The Oopi post.
+     * @param Term $term The Oopi term.
+     * @param Post $post The Oopi post.
      *
      * @return boolean
      */
-    public static function set_term_language( int $term_id, Post $post ) {
+    public static function set_term_language( Term $term, Post $post ) {
 
         // Check which translation plugin should be used
         $activated_i18n_plugin = self::get_activated_i18n_plugin( $post );
@@ -72,10 +73,8 @@ class Controller {
 
         // If Polylang is activated use Polylang.
         if ( $activated_i18n_plugin === 'polylang' ) {
-            $i18n   = $post->get_i18n();
-            $locale = Util::get_prop( $i18n, 'locale', '' );
 
-            Polylang::set_term_language( $term_id, $locale );
+            Polylang::set_term_language( $term, $post );
 
             return true;
         }
@@ -92,7 +91,7 @@ class Controller {
      *
      * @return string|boolean
      */
-    public static function get_activated_i18n_plugin( &$post ) {
+    public static function get_activated_i18n_plugin( $post ) {
 
         // Checks if Polylang is installed and activated
         $polylang_activated = function_exists( 'PLL' );
