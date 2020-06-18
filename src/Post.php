@@ -1127,12 +1127,13 @@ class Post {
 
                 // If the term does not exist, create it.
                 if ( ! $wp_term ) {
-                    $wp_term = Storage::create_new_term( $term, $this );
-                    if ( is_wp_error( $wp_term ) ) {
+                    $result = Storage::create_new_term( $term, $this );
+                    if ( is_wp_error( $result ) ) {
                         // Skip erroneous terms.
                         continue;
                     }
                 }
+                $wp_term = $term->get_term();
 
                 // Ensure identification. Data is only set once.
                 $term->identify();
@@ -1188,18 +1189,25 @@ class Post {
                 case 'taxonomy':
                     $terms = [];
                     foreach ( $value as $term ) {
-                        $term_slug     = Util::get_prop( $term, 'slug' );
-                        $term_taxonomy = Util::get_prop( $term, 'taxonomy' );
-                        $term_obj      = Storage::get_term_by_slug( $slug, $taxonomy );
+                        if ( ! $term instanceof Term ) {
+                            $term = ( new Term( Util::get_prop( 'oopi_id' ) ) )->set_data( $term );
+                        }
+
                         // If the term does not exist, create it.
-                        if ( ! $term_obj ) {
-                            $term_obj = Storage::create_new_term( $term, $this );
-                            if ( is_wp_error( $term_obj ) ) {
+                        if ( ! $term->get_term() ) {
+                            $result = Storage::create_new_term( $term, $this );
+                            if ( is_wp_error( $result ) ) {
                                 // Skip erroneous terms.
                                 continue;
                             }
                         }
-                        $terms[] = (int) $term_obj->term_id;
+
+                        // Ensure identification. Data is only set once.
+                        $term->identify();
+
+                        // Handle localization.
+                        Localization\Controller::set_term_language( $term, $this );
+                        $terms[] = $term->get_term_id();
                     }
                     if ( count( $terms ) ) {
                         update_field( $key, $terms, $this->post_id );

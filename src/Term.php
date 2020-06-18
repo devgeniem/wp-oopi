@@ -58,6 +58,13 @@ class Term {
     protected $taxonomy;
 
     /**
+     * The term description
+     *
+     * @var string
+     */
+    protected $description = '';
+
+    /**
      * The optional language data
      *
      * @var Language
@@ -90,6 +97,15 @@ class Term {
      */
     public function get_oopi_id() : string {
         return $this->oopi_id;
+    }
+
+    /**
+     * Get the WP term id.
+     *
+     * @return int
+     */
+    public function get_term_id() : int {
+        return $this->term->term_id ?? 0;
     }
 
     /**
@@ -196,6 +212,28 @@ class Term {
     public function set_taxonomy( ?string $taxonomy ) : Term {
 
         $this->taxonomy = $taxonomy;
+
+        return $this;
+    }
+
+    /**
+     * Get the description.
+     *
+     * @return string
+     */
+    public function get_description(): string {
+        return $this->description;
+    }
+
+    /**
+     * Set the description.
+     *
+     * @param string $description The description.
+     *
+     * @return Term Return self to enable chaining.
+     */
+    public function set_description( ?string $description ): Term {
+        $this->description = $description;
 
         return $this;
     }

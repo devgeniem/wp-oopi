@@ -207,32 +207,28 @@ class Storage {
      * @param  Term $term Term data.
      * @param  Post $post The current Oopi post instance.
      *
-     * @return object|\WP_Error An array containing the `term_id` and `term_taxonomy_id`,
+     * @return array|\WP_Error An array containing the `term_id` and `term_taxonomy_id`,
      *                        WP_Error otherwise.
      */
     public static function create_new_term( Term $term, Post $post ) {
-        $taxonomy = $term['taxonomy'] ?? '';
-        $name     = $term['name'] ?? '';
-        $slug     = $term['slug'] ?? '';
-
         // If parent's Oopi id is set, fetch it. Default to 0.
         $parent    = $term->get_parent();
         $parent_id = $parent ? static::get_term_id_by_oopi_id( $parent ) : 0;
 
         // Insert the new term.
         $result = wp_insert_term(
-            $name,
-            $taxonomy,
+            $term->get_name(),
+            $term->get_taxonomy(),
             [
-                'slug'        => $slug,
-                'description' => isset( $term['description'] ) ? $term['description'] : '',
+                'slug'        => $term->get_slug(),
+                'description' => $term->get_description(),
                 'parent'      => $parent_id,
             ]
         );
         // Something went wrong.
         if ( is_wp_error( $result ) ) {
             $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
-            $post->set_error( 'taxonomy', $name, $err );
+            $post->set_error( 'taxonomy', $term->get_name(), $err );
             return $result;
         }
 
@@ -241,6 +237,6 @@ class Storage {
         $term->set_term( $wp_term );
         $term->identify();
 
-        return (object) $result;
+        return $result;
     }
 }
