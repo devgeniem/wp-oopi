@@ -521,7 +521,7 @@ class Post {
         foreach ( $tax_array as $term ) {
             if ( ! $term instanceof Term ) {
                 $oopi_id = Util::get_prop( $term, 'oopi_id', '' );
-                $term    = ( new Term( $oopi_id ) )->set_data( $oopi_id );
+                $term    = ( new Term( $oopi_id ) )->set_data( $term );
             }
             $this->taxonomies[] = apply_filters( 'oopi_taxonomy_term', $term );
         }
