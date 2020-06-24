@@ -148,7 +148,7 @@ class Polylang {
             ) {
                 wp_update_post(
                     [
-                        'ID'        => $post,
+                        'ID'        => $post->get_post_id(),
                         'post_name' => $post->get_post_name(),
                     ]
                 );
