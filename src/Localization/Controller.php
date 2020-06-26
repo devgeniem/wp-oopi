@@ -7,6 +7,8 @@ namespace Geniem\Oopi\Localization;
 
 // Classes
 use Geniem\Oopi\Post as Post;
+use Geniem\Oopi\Term;
+use Geniem\Oopi\Util;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -27,15 +29,14 @@ class Controller {
     }
 
     /**
-     * Saves plugin with your installed WordPress translation plugin.
-     * The actual locale saving is happening in Plugin specific classes
-     * Geniem\Oopi\Localization\Polylang and Geniem\Oopi\Localization\WPML
+     * Saves language data with your installed WordPress translation plugin.
+     * The actual language saving is done in corresponding plugin classes.
      *
      * @param Post $post Instance of the Post class.
      *
      * @return boolean
      */
-    public static function save_locale( &$post ) {
+    public static function save_language( &$post ) {
 
         // Check which translation plugin should be used
         $activated_i18n_plugin = self::get_activated_i18n_plugin( $post );
@@ -52,6 +53,36 @@ class Controller {
     }
 
     /**
+     * Saves WP term language data with your installed WordPress translation plugin.
+     * The actual language saving is done in corresponding plugin classes.
+     *
+     * @param Term $term The Oopi term.
+     * @param Post $post The Oopi post.
+     *
+     * @return boolean
+     */
+    public static function set_term_language( Term $term, Post $post ) {
+
+        // Check which translation plugin should be used
+        $activated_i18n_plugin = self::get_activated_i18n_plugin( $post );
+
+        // If no translation plugin was detected.
+        if ( $activated_i18n_plugin === false ) {
+            return false;
+        }
+
+        // If Polylang is activated use Polylang.
+        if ( $activated_i18n_plugin === 'polylang' ) {
+
+            Polylang::set_term_language( $term, $post );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Checks which translation plugin to use.
      * On success returns slug of supported WordPress translation plugins. 'wpml', 'polylang'
      * if translation plugin is not found returns false.
@@ -60,7 +91,7 @@ class Controller {
      *
      * @return string|boolean
      */
-    public static function get_activated_i18n_plugin( &$post ) {
+    public static function get_activated_i18n_plugin( $post ) {
 
         // Checks if Polylang is installed and activated
         $polylang_activated = function_exists( 'PLL' );

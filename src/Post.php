@@ -8,6 +8,7 @@ namespace Geniem\Oopi;
 use Geniem\Oopi\Exception\PostException as PostException;
 use Geniem\Oopi\Localization\Polylang as Polylang;
 use WP_Post;
+use WP_Term;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -66,15 +67,24 @@ class Post {
     protected $meta = [];
 
     /**
-     * Taxonomies in a multidimensional associative array.
+     * Oopi Term objects in an array.
      *
      * @see $this->set_taxonomies() For description.
-     * @var array
+     * @var Term[]
      */
     protected $taxonomies = [];
 
     /**
+     * The language data.
+     *
+     * @var Language
+     */
+    protected $language;
+
+    /**
      * An array for locale data.
+     *
+     * @deprecated Use $language instead.
      *
      * @var array
      */
@@ -137,6 +147,17 @@ class Post {
      */
     public function get_post_id() {
         return $this->post_id;
+    }
+
+    /**
+     * Getter for the post name in the set post data.
+     *
+     * @return string
+     */
+    public function get_post_name() {
+        $post_name = $this->post->post_name ?? '';
+
+        return $post_name;
     }
 
     /**
@@ -227,7 +248,8 @@ class Post {
             // @codingStandardsIgnoreStart
             $this->set_error( 'id', 'oopi_id', __( 'A unique id must be set for the Post constructor.', 'oopi' ) );
             // @codingStandardsIgnoreEnd
-        } else {
+        }
+        else {
             // Set the Importer id.
             $this->oopi_id = $oopi_id;
             // Fetch the WP post id, if it exists.
@@ -272,8 +294,13 @@ class Post {
             $this->set_acf( $raw_post->acf );
         }
 
-        // If post object has i18n object property set post language
-        if ( isset( $raw_post->i18n ) && is_array( $raw_post->i18n ) ) {
+        // If post object has a language object property, set post language.
+        if ( isset( $raw_post->language ) ) {
+            $this->set_language( $raw_post->language );
+        }
+
+        // @deprecated: If post object has i18n object property, set post language
+        if ( isset( $raw_post->i18n ) ) {
             $this->set_i18n( $raw_post->i18n );
         }
     }
@@ -290,7 +317,8 @@ class Post {
             foreach ( get_object_vars( $post_obj ) as $attr => $value ) {
                 $this->post->{$attr} = $value;
             }
-        } else {
+        }
+        else {
             // Set the post object.
             $this->post    = new \WP_Post( $post_obj );
             $this->post_id = null;
@@ -370,20 +398,18 @@ class Post {
                 // Check if parent exists.
                 $parent_post_id = Storage::get_post_id_by_oopi_id( $parent_id );
                 if ( $parent_post_id === false ) {
-                    // @codingStandardsIgnoreStart
-                    $err = __( 'Error in the "post_parent" column. The queried post parent was not found.', 'oopi' );
-                    // @codingStandardsIgnoreEnd
+                    $err = __( 'Error in the "post_parent" column. The queried post parent was not found.', 'oopi' ); // phpcs:ignore
                     $this->set_error( $err_scope, 'menu_order', $err );
-                } else {
+                }
+                else {
                     // Set parent post id.
                     $post_obj->post_parent = $parent_post_id;
                 }
-            } else {
+            }
+            else {
                 // The parent is a WP post id.
                 if ( \get_post( $parent_id ) === null ) {
-                    // @codingStandardsIgnoreStart
-                    $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'oopi' );
-                    // @codingStandardsIgnoreEnd
+                    $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'oopi' ); // phpcs:ignore
                     $this->set_error( $err_scope, 'menu_order', $err );
                 }
             }
@@ -401,9 +427,7 @@ class Post {
         if ( isset( $post_obj->post_type ) ) {
             $post_types = get_post_types();
             if ( ! array_key_exists( $post_obj->post_type, $post_types ) ) {
-                // @codingStandardsIgnoreStart
-                $err = __( 'Error in the "post_type" column. The value does not match a registered post type.', 'oopi' );
-                // @codingStandardsIgnoreEnd
+                $err = __( 'Error in the "post_type" column. The value does not match a registered post type.', 'oopi' ); // phpcs:ignore
                 $this->set_error( $err_scope, 'post_type', $err );
             }
         }
@@ -419,17 +443,21 @@ class Post {
     public function validate_date( $date_string = '', $col_name = '', $err_scope = '' ) {
         $valid = \DateTime::createFromFormat( 'Y-m-d H:i:s', $date_string );
         if ( ! $valid ) {
-            // @codingStandardsIgnoreStart
-            $err = __( "Error in the \"$col_name\" column. The value is not a valid datetime string.", 'oopi' );
-            // @codingStandardsIgnoreEnd
+            $err = sprintf(
+                // translators: %s stands for the column name.
+                __( 'Error in the %s column. The value is not a valid datetime string.', 'oopi' ),
+                $col_name
+            );
             $this->set_error( $err_scope, $col_name, $err );
         }
     }
 
 
     /**
-     * @todo doc / validation?
-     * @param [type] $attachments [description]
+     * Set attachment data.
+     *
+     * @todo validation?
+     * @param array $attachments Attachment objects|arrays.
      */
     public function set_attachments( $attachments ) {
         $this->attachments = $attachments;
@@ -445,7 +473,7 @@ class Post {
         $this->meta = (array) $meta_data;
         // Filter values before validating.
         foreach ( $this->meta as $key => $value ) {
-            $this->meta[ $key ] = apply_filters( "oopi_meta_value_{$key}", $value );
+            $this->meta[ $key ] = apply_filters( "oopi_meta_value_$key", $value );
         }
 
         $this->validate_meta( $this->meta );
@@ -466,26 +494,36 @@ class Post {
 
     /**
      * Set the taxonomies of the post.
-     * The taxonomies must be passed as an associative array
-     * where the key is the taxonomy slug and values are associative array
-     * with the name and the slug of the taxonomy term.
-     * Example:
+     *
+     * Example of setting a category as a Geniem\Oopi\Term object:
+     *     $term = ( new Geniem\Oopi\Term( 'external_id_123' ) )
+     *         ->set_name( 'My category' )
+     *         ->set_slug( 'my-category' )
+     *         ->set_taxonomy( 'cateogory' );
+     *     $tax_array = [
+     *         $term
+     *     ];
+     *
+     * Example of setting a category as raw data:
      *      $tax_array = [
-     *          'category' => [
-     *              [
-     *                  'name' => 'My category',
-     *                  'slug' => 'my-category',
-     *              ]
+     *          [
+     *              'taxonomy => 'category',
+     *              'name'    => 'My category',
+     *              'slug'    => 'my-category',
+     *              'oopi_id' => 'external_id_123',
+     *          ],
      *      ];
      *
      * @param array $tax_array The taxonomy data.
      */
-    public function set_taxonomies( $tax_array = [] ) {
-        // Force type to array.
-        $this->taxonomies = (array) $tax_array;
+    public function set_taxonomies( ?array $tax_array = [] ) {
         // Filter values before validating.
-        foreach ( $this->taxonomies as $key => $term ) {
-            $this->taxonomies[ $key ] = apply_filters( "oopi_taxonomy_term", $term );
+        foreach ( $tax_array as $term ) {
+            if ( ! $term instanceof Term ) {
+                $oopi_id = Util::get_prop( $term, 'oopi_id', '' );
+                $term    = ( new Term( $oopi_id ) )->set_data( $term );
+            }
+            $this->taxonomies[] = apply_filters( 'oopi_taxonomy_term', $term );
         }
         $this->validate_taxonomies( $this->taxonomies );
     }
@@ -493,13 +531,11 @@ class Post {
     /**
      * Validate the taxonomy array.
      *
-     * @param array $taxonomies The set taxonomies for the post.
+     * @param Term[] $taxonomies The set taxonomies for the post.
      */
     public function validate_taxonomies( $taxonomies ) {
         if ( ! is_array( $taxonomies ) ) {
-            // @codingStandardsIgnoreStart
-            $err = __( "Error in the taxonomies. Taxonomies must be passed in an associative array.", 'oopi' );
-            // @codingStandardsIgnoreEnd
+            $err = __( 'Error in the taxonomies. Taxonomies must be passed in an array.', 'oopi' ); // phpcs:ignore
             $this->set_error( 'taxonomy', $taxonomies, $err );
             return;
         }
@@ -508,13 +544,18 @@ class Post {
         $registered_taxonomies = \get_taxonomies();
         foreach ( $taxonomies as $term ) {
             if (
-                empty( Util::get_prop( $term, 'taxonomy' ) ) ||
-                ! in_array( Util::get_prop( $term, 'taxonomy' ), $registered_taxonomies, true )
+                empty( $term->get_taxonomy() ) ||
+                ! in_array( $term->get_taxonomy(), $registered_taxonomies, true )
             ) {
-                // @codingStandardsIgnoreStart
-                $tax = Util::get_prop( $term, 'taxonomy' );
-                $err = __( "Error in the \"$tax\" taxonomy. The taxonomy is not registerd.", 'oopi' );
-                // @codingStandardsIgnoreEnd
+                $err = sprintf(
+                    // translators: %s stands for the taxonomy slug.
+                    __( 'Error in the %s taxonomy. The taxonomy is not registerd.', 'oopi' ),
+                    $term->get_taxonomy()
+                );
+                $this->set_error( 'taxonomy', $term, $err );
+            }
+            if ( empty( $term->get_oopi_id() ) ) {
+                $err = __( 'Error in a term. Required `oopi_id` property not set.', 'oopi' );
                 $this->set_error( 'taxonomy', $term, $err );
             }
             apply_filters( 'oopi_validate_taxonomies', $taxonomies );
@@ -532,7 +573,7 @@ class Post {
         // Filter values before validating.
         /* @todo filtering (by name, not $key?)
         foreach ( $this->acf as $key => $value ) {
-            $this->acf[$key] = apply_filters( "oopi_acf_value_{$key}", $value );
+            $this->acf[$key] = apply_filters( "oopi_acf_value_$key", $value );
         }
         */
         $this->validate_acf( $this->acf );
@@ -552,13 +593,48 @@ class Post {
     }
 
     /**
+     * Get the language.
+     *
+     * @return Language
+     */
+    public function get_language() : Language {
+        return $this->language;
+    }
+
+    /**
+     * Sets the post's language data.
+     *
+     * @param Language|array|object $language The language data.
+     */
+    public function set_language( $language ) {
+        if ( ! $language instanceof Language ) {
+            $this->language = ( new Language() )->set_data( $language );
+        }
+        else {
+            $this->language = $language;
+        }
+        // TODO: validate the language object.
+    }
+
+    /**
      * Sets the post localization data.
      *
-     * @param array $i18n_data The polylang data in an associative array.
+     * @deprecated
+     *
+     * @param array $i18n_data The localization data in an associative array.
      */
     public function set_i18n( $i18n_data ) {
         $this->i18n = $i18n_data;
         $this->validate_i18n( $this->i18n );
+
+        $locale = Util::get_prop( $this->i18n, 'locale' );
+        $master = Util::get_prop( $this->i18n, 'master' );
+
+        if ( ! is_scalar( $master ) ) {
+            $master = Util::get_prop( $master, 'query_key' );
+        }
+
+        $this->language = new Language( $locale, $master );
     }
 
     /**
@@ -573,29 +649,20 @@ class Post {
             return;
         }
 
-        // Check if data is an array.
-        if ( ! is_array( $i18n ) ) {
-            // @codingStandardsIgnoreStart
-            $err = __( 'Error in the i18n data. The locale data must be passed in an associative array.', 'oopi' );
-            // @codingStandardsIgnoreEnd
-            $this->set_error( 'i18n', $i18n, $err );
-            return;
-        }
-
         // Check if locale is set and in the current installation.
-        if ( ! isset( $i18n['locale'] ) ) {
+        if ( ! Util::get_prop( $i18n, 'locale' ) ) {
             $err = __( 'Error in the polylang data. The locale is not set.', 'oopi' );
             $this->set_error( 'i18n', $i18n, $err );
-        } elseif ( ! in_array( $i18n['locale'], Polylang::language_list(), true ) ) {
-            // @codingStandardsIgnoreStart
-            $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'oopi' );
-            // @codingStandardsIgnoreEnd
+        }
+        elseif ( ! in_array( Util::get_prop( $i18n, 'locale' ), Polylang::language_list(), true ) ) {
+            $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'oopi' ); // phpcs:ignore
             $this->set_error( 'i18n', $i18n, $err );
         }
 
         // If a master post is set for the current post, check its validity.
-        if ( isset( $i18n['master'] ) ) {
-            if ( Util::is_query_id( $i18n['master']['query_key'] ?? '' ) === false ) {
+        $master = Util::get_prop( $i18n, 'master', false );
+        if ( $master ) {
+            if ( Util::is_query_id( Util::get_prop( $master, 'query_key', '' ) ) === false ) {
                 $err = __( 'Error in the i18n data. The master query id is missing or invalid.', 'oopi' );
                 $this->set_error( 'i18n', $i18n, $err );
             }
@@ -671,8 +738,8 @@ class Post {
         }
 
         // Save localization data.
-        if ( ! empty( $this->i18n ) ) {
-            Localization\Controller::save_locale( $this );
+        if ( ! empty( $this->language ) ) {
+            Localization\Controller::save_language( $this );
         }
 
         // Save attachments.
@@ -1050,35 +1117,36 @@ class Post {
     /**
      * Sets the terms of a post and create taxonomy terms
      * if they do not exist yet.
-     *
-     * @todo make similar to acf taxonomies
      */
     protected function save_taxonomies() {
         if ( is_array( $this->taxonomies ) ) {
             $term_ids_by_tax = [];
-            foreach ( $this->taxonomies as &$term_obj ) {
-                if ( ! $term_obj instanceof \WP_Term ) {
-                    // Safely get values from the term.
-                    $slug     = Util::get_prop( $term_obj, 'slug' );
-                    $taxonomy = Util::get_prop( $term_obj, 'taxonomy' );
-
-                    // Fetch the term object.
-                    $term_obj = get_term_by( 'slug', $slug, $taxonomy );
-                }
-                else {
-                    $taxonomy = $term_obj->taxonomy;
-                }
+            foreach ( $this->taxonomies as $term ) {
+                $taxonomy = $term->get_taxonomy();
+                $wp_term  = $term->get_term();
 
                 // If the term does not exist, create it.
-                if ( ! $term_obj ) {
-                    $term_obj = Storage::create_new_term( $term_obj, $this );
-                    // @todo check for wp error and continue, edit for ACF taxonomies with similar code
+                if ( ! $wp_term ) {
+                    $result = Storage::create_new_term( $term, $this );
+                    if ( is_wp_error( $result ) ) {
+                        // Skip erroneous terms.
+                        continue;
+                    }
                 }
+                $wp_term = $term->get_term();
+
+                // Ensure identification. Data is only set once.
+                $term->identify();
+
+                // Handle localization.
+                Localization\Controller::set_term_language( $term, $this );
+
                 // Add term id.
                 if ( isset( $term_ids_by_tax[ $taxonomy ] ) ) {
-                    $term_ids_by_tax[ $taxonomy ][] = $term_obj->term_id;
-                } else {
-                    $term_ids_by_tax[ $taxonomy ] = [ $term_obj->term_id ];
+                    $term_ids_by_tax[ $taxonomy ][] = $wp_term->term_id;
+                }
+                else {
+                    $term_ids_by_tax[ $taxonomy ] = [ $wp_term->term_id ];
                 }
             }
             foreach ( $term_ids_by_tax as $taxonomy => $terms ) {
@@ -1096,63 +1164,74 @@ class Post {
      */
     protected function save_acf() {
 
-        // If ACF is activated
-        if ( function_exists( 'get_field' ) ) {
+        // Bail if ACF is not activated.
+        if ( ! function_exists( 'get_field' ) ) {
+            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save ACF data.', 'oopi' ) ); // phpcs:ignore
+            return;
+        }
 
-            if ( is_array( $this->acf ) ) {
+        if ( ! is_array( $this->acf ) ) {
+            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields data is set but it is not an array.', 'oopi' ) ); // phpcs:ignore
+            return;
+        }
 
-                foreach ( $this->acf as $acf_row ) {
-                    // The key must be set.
-                    if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
-                        continue;
+        foreach ( $this->acf as $acf_row ) {
+            // The key must be set.
+            if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
+                continue;
+            }
+
+            $type  = Util::get_prop( $acf_row, 'type', 'default' );
+            $key   = Util::get_prop( $acf_row, 'key', '' );
+            $value = Util::get_prop( $acf_row, 'value', '' );
+
+            switch ( $type ) {
+                case 'taxonomy':
+                    $terms = [];
+                    foreach ( $value as $term ) {
+                        if ( ! $term instanceof Term ) {
+                            $term = ( new Term( Util::get_prop( 'oopi_id' ) ) )->set_data( $term );
+                        }
+
+                        // If the term does not exist, create it.
+                        if ( ! $term->get_term() ) {
+                            $result = Storage::create_new_term( $term, $this );
+                            if ( is_wp_error( $result ) ) {
+                                // Skip erroneous terms.
+                                continue;
+                            }
+                        }
+
+                        // Ensure identification. Data is only set once.
+                        $term->identify();
+
+                        // Handle localization.
+                        Localization\Controller::set_term_language( $term, $this );
+                        $terms[] = $term->get_term_id();
                     }
-
-                    $type  = Util::get_prop( $acf_row, 'type', 'default' );
-                    $key   = Util::get_prop( $acf_row, 'key', '' );
-                    $value = Util::get_prop( $acf_row, 'value', '' );
-
-                    switch ( $type ) {
-                        case 'taxonomy':
-                            $terms = [];
-                            foreach ( $value as &$term ) {
-                                $term_slug = Util::get_prop( $term, 'slug' );
-                                $term_taxonomy = Util::get_prop( $term, 'taxonomy' );
-                                $term_obj = \get_term_by( 'slug', $term_slug, $term_taxonomy );
-                                // If the term does not exist, create it.
-                                if ( ! $term_obj ) {
-                                    $term_obj = Storage::create_new_term( $term, $this );
-                                }
-                                $terms[] = (int) $term_obj->term_id;
-                            }
-                            if ( count( $terms ) ) {
-                                update_field( $key, $terms, $this->post_id );
-                            }
-                            break;
-
-                        case 'image':
-                            // Check if image exists.
-                            $attachment_post_id = $this->attachment_ids[ $value ];
-                            if ( ! empty( $attachment_post_id ) ) {
-                                update_field( $key, $attachment_post_id, $this->post_id );
-                            } else {
-                                $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
-                                $this->set_error( 'acf', 'image_field', $err );
-                            }
-                            break;
-
-                        // @todo Test which field types require no extra logic.
-                        // Currently tested: 'select'
-                        default:
-                            update_field( $key, $value, $this->post_id );
-                            break;
+                    if ( count( $terms ) ) {
+                        update_field( $key, $terms, $this->post_id );
                     }
-                } // End foreach().
-            } // End if().
-        } // End if().
-        else {
-            // @codingStandardsIgnoreStart
-            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save acf meta fields.', 'oopi' ) );
-            // @codingStandardsIgnoreEnd
+                    break;
+
+                case 'image':
+                    // Check if image exists.
+                    $attachment_post_id = $this->attachment_ids[ $value ];
+                    if ( ! empty( $attachment_post_id ) ) {
+                        update_field( $key, $attachment_post_id, $this->post_id );
+                    }
+                    else {
+                        $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
+                        $this->set_error( 'acf', 'image_field', $err );
+                    }
+                    break;
+
+                // @todo Test which field types require no extra logic.
+                // Currently tested: 'select'
+                default:
+                    update_field( $key, $value, $this->post_id );
+                    break;
+            }
         }
 
         // This functions is done.

@@ -10,9 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Classes
+use Geniem\Oopi\Language;
 use Geniem\Oopi\Settings;
 use Geniem\Oopi\Storage;
 use Geniem\Oopi\Post;
+use Geniem\Oopi\Term;
 use Geniem\Oopi\Util;
 
 /**
@@ -127,53 +129,54 @@ class Polylang {
     public static function save_pll_locale( &$post ) {
 
         // Get needed variables
-        $post_id = $post->get_post_id();
-        $i18n    = $post->get_i18n();
-        $locale  = Util::get_prop( $i18n, 'locale' );
-        $master  = Util::get_prop( $i18n, 'master', false );
+        $post_id  = $post->get_post_id();
+        $wp_post  = get_post( $post_id );
+        $language = $post->get_language();
+        $locale   = $language->get_locale();
+        $master   = $language->get_master_oopi_id();
 
-        // If pll information is in wrong format
-        if ( is_array( $i18n ) ) {
+        if ( $locale ) {
 
             // Set post locale.
             \pll_set_post_language( $post_id, $locale );
 
+            // If a post name was set in the data and it doesn't match the database,
+            // update post name to allow PLL to handle unique slugs.
+            if (
+                $post->get_post_name() &&
+                $post->get_post_name() !== $wp_post->post_name
+            ) {
+                wp_update_post(
+                    [
+                        'ID'        => $post->get_post_id(),
+                        'post_name' => $post->get_post_name(),
+                    ]
+                );
+            }
+
             // Run only if master exists
             if ( $master ) {
 
-                // Check if we need to link the post to its master.
-                $master_key = Util::get_prop( $master, 'query_key', '' );
+                // Get master post id for translation linking
+                $master_post_id = Storage::get_post_id_by_oopi_id( $master );
+                $master_locale  = \pll_get_post_language( $master_post_id );
 
-                if ( empty( $master_key ) ) {
-                    // The 'master' property contains a 'oopi_id'.
-                    $master_key = $master;
-                }
+                // Set the link for translations if a matching post was found.
+                if ( $master_post_id ) {
 
-                // If a master key is not empty.
-                if ( ! empty( $master_key ) ) {
+                    // Get current translation.
+                    $current_translations = \pll_get_post_translations( $master_post_id );
 
-                    // Get master post id for translation linking
-                    $oopi_id_prefix = Settings::get( 'id_prefix' );
-                    $master_id      = str_replace( $oopi_id_prefix, '', $master_key );
-                    $master_post_id = Storage::get_post_id_by_oopi_id( $master_id );
+                    // Set up new translations.
+                    $new_translations = [
+                        $master_locale => $master_post_id,
+                        $locale        => $post_id,
+                    ];
 
-                    // Set the link for translations if a matching post was found.
-                    if ( $master_post_id ) {
+                    $parsed_args = \wp_parse_args( $new_translations, $current_translations );
 
-                            // Get current translation.
-                            $current_translations = \pll_get_post_translations( $master_post_id );
-
-                            // Set up new translations.
-                            $new_translations = [
-                                'post_id' => $master_post_id,
-                                $locale   => $post_id,
-                            ];
-
-                            $parsed_args = \wp_parse_args( $new_translations, $current_translations );
-
-                            // Add and link translation.
-                            \pll_save_post_translations( $parsed_args );
-                    }
+                    // Link translations.
+                    \pll_save_post_translations( $parsed_args );
                 }
             }
         }
@@ -181,8 +184,75 @@ class Polylang {
             $post->set_error(
                 'pll',
                 $i18n,
-                __( 'Post does not have pll information in right format.', 'oopi' )
+                __( 'i18n information is set, but it is missing data.', 'oopi' )
             );
+        }
+    }
+
+    /**
+     * Sets the term language.
+     *
+     * @param Term $term The Oopi term.
+     * @param Post $post The Oopi post.
+     *
+     * @return void
+     */
+    public static function set_term_language( Term $term, Post $post ) {
+        $wp_term = $term->get_term();
+
+        if ( ! $wp_term instanceof \WP_Term ) {
+            $post->set_error(
+                'pll',
+                $term,
+                __( 'No WP term found in the Oopi term.', 'oopi' )
+            );
+        }
+
+        // Bail if the taxonomy is not translated.
+        if ( ! pll_is_translated_taxonomy( $wp_term->taxonomy ) ) {
+            $post->set_error(
+                'pll',
+                $term,
+                __( 'Unable to localize a term of an untranslated taxonomy.', 'oopi' )
+            );
+            return;
+        }
+
+        $language_obj = $term->get_language();
+        $locale       = $language_obj->get_locale() ?? null;
+
+        if ( empty( $locale ) ) {
+            // Set the default language if no language was set.
+            $locale = pll_default_language();
+        }
+
+        pll_set_term_language( $wp_term->term_id, $locale );
+
+        // Try to set translations.
+        if ( $language_obj instanceof Language && $language_obj->get_master_oopi_id() ) {
+            $master = $language_obj->get_master_oopi_id();
+
+            // Get master post id for translation linking
+            $master_term_id = Storage::get_term_id_by_oopi_id( $master );
+            $master_locale  = \pll_get_term_language( $master_term_id );
+
+            // Set the link for translations if a matching post was found.
+            if ( $master_term_id ) {
+
+                // Get current translation.
+                $current_translations = \pll_get_term_translations( $master_term_id );
+
+                // Set up new translations.
+                $new_translations = [
+                    $master_locale => $master_term_id,
+                    $locale        => $wp_term->term_id,
+                ];
+
+                $parsed_args = \wp_parse_args( $new_translations, $current_translations );
+
+                // Link translations.
+                \pll_save_term_translations( $parsed_args );
+            }
         }
     }
 
