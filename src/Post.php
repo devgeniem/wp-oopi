@@ -939,6 +939,18 @@ class Post {
      * @return int   $attachment_id
      */
     protected function insert_attachment_from_url( $attachment_src, $attachment, $post_id ) {
+        $stream_context = null;
+
+        // If you want to ignore SSL Certificate chain errors, or just yeet it,
+        // define OOPI_IGNORE_SSL in your migration worker and set it true.
+        if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
+            $stream_context = stream_context_create( [
+                'ssl' => [
+                    'verify_peer'      => false,
+                    'verify_peer_name' => false,
+                ],
+            ] );
+        }
 
         // Get filename from the url.
         $file_name                  = basename( $attachment_src );
@@ -981,7 +993,7 @@ class Post {
         $local_image                = $tmp_folder . $file_name;
 
         // Copy file to local image location
-        copy( $attachment_src, $local_image );
+        copy( $attachment_src, $local_image, $stream_context );
 
         // If exif_read_data is callable and file type could contain exif data.
         if ( is_callable( 'exif_read_data' ) && in_array( $exif_imagetype, $exif_supported_imagetypes ) ) {
@@ -990,7 +1002,7 @@ class Post {
         }
 
         // Get file from local temp folder.
-        $file_content = file_get_contents( $local_image );
+        $file_content = file_get_contents( $local_image, false, $stream_context );
 
         // Upload file to uploads.
         $upload = wp_upload_bits( $file_name, null, $file_content );
