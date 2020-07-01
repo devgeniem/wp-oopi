@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+## [0.3.1] - 2020-07-01
+
 ### Added
 
 - Add an option to ignore/skip SSL Certificate verification by defining `OOPI_IGNORE_SSL` as true.
