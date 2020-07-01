@@ -152,6 +152,12 @@ To override the transient expiration time set the following constant before the 
 define( 'OOPI_TRANSIENT_EXPIRATION', MONTH_IN_SECONDS );
 ```
 
+To ignore SSL Certificate verification errors in your importer, you can define `OOPI_IGNORE_SSL` as true.
+```php
+define( 'OOPI_IGNORE_SSL', true );
+```
+See `\Geniem\Oopi\Post::insert_attachment_from_url`.
+
 ## Logging
 
 The plugin creates a custom table into the WordPress database called `oopi_log`. This table holds log entries of all import actions and contains the following columns:
