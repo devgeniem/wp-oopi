@@ -3,71 +3,99 @@
  * An example of importing a post object.
  */
 
-$data = new stdClass();
+use Geniem\Oopi\Language;
+use Geniem\Oopi\Post;
+use Geniem\Oopi\Term;
 
-// Set the basic post data as an associative array and cast it to object.
-$data->post = (object) [
-    'post_title'   => 'The post title',
-    'post_content' => 'The post main content HTML.',
-    'post_excerpt' => 'The excerpt text of the post.',
-];
+// The unique id for the post.
+$oopi_id = 'my_custom_id_1234';
 
-// The array of attachments.
-$data->attachments = [
-    [
-        'filename'    => '123456.jpg',
-        'mime_type'   => 'image/jpg',
-        'id'          => '123456',
-        'alt'         => 'Alt text is stored in postmeta.',
-        'caption'     => 'This is the post excerpt.',
-        'description' => 'This is the post content.',
-        'src'         => 'http://upload-from-here.com/123456.jpg',
-    ],
-];
-
-// Postmeta data as key-value pairs.
-$data->meta = [
-    'key1'        => 'value1',
-    'another_key' => 'another_value',
-    'integer_key' => 123,
-];
-
-// Advanced Custom Fields data.
-$data->acf = [
-    'name'  => 'repeater_field_key',
-    'value' => [
-        [
-            'name'  => 'repeater_value_1',
-            'value' => '...',
-        ],
-        [
-            'name'  => 'repeater_value_2',
-            'value' => '...',
-        ],
-    ],
-    [
-        'name'  => 'single_field_key',
-        'value' => '...',
-    ],
-    [
-        'name'  => 'attachment_field_key',
-        'value' => 'oopi_attachment_123456',
-    ],
-];
+// Create a post object.
+$post = new Post( $oopi_id );
 
 // In this example this post is an english version
 // of the post with the Oopi id 56.
-$data->i18n = [
-    'locale' => 'en',
-    'master' => 'oopi_id_56',
-];
+$post->set_language( new Language( 'en', 56 ) );
 
-// Create a new instance by a unique id.
-$api_id = 'my_custom_id_1234';
-$post   = new \Geniem\Oopi\Post( $api_id );
+// Set the basic post data as an associative array and cast it to object.
+$post->set_post(
+    (object) [
+        'post_title'   => 'The post title',
+        'post_name'    => sanitize_title( 'The post title' ),
+        'post_content' => 'The post main content HTML.',
+        'post_excerpt' => 'The excerpt text of the post.',
+    ]
+);
 
-// Set all the data for the post.
-$post->set_data( $data );
+// The array of attachments.
+$post->set_attachments(
+    [
+        [
+            'filename'    => '123456.jpg',
+            'mime_type'   => 'image/jpg',
+            'id'          => '123456',
+            'alt'         => 'Alt text is stored in postmeta.',
+            'caption'     => 'This is the post excerpt.',
+            'description' => 'This is the post content.',
+            'src'         => 'http://upload-from-here.com/123456.jpg',
+        ],
+    ]
+);
+
+// Postmeta data as key-value pairs.
+$post->set_meta(
+    [
+        'key1'        => 'value1',
+        'another_key' => 'another_value',
+        'integer_key' => 123,
+    ]
+);
+
+// Create a category term.
+$oopi_term = new Term( 'my-term-2' );
+$oopi_term->set_data(
+    [
+        'slug'     => 'my-term',
+        'name'     => 'My term',
+        'taxonomy' => 'category',
+    ]
+);
+// Set the term language and set the master id.
+// In this case 'my-term-1' would be the Oopi id
+// of the previously imported term in the main language.
+$oopi_term->set_language( new Language( 'en', 'my-term-1' ) );
+
+// Set the term into the array.
+$post->set_taxonomies(
+    [
+        $oopi_term,
+    ]
+);
+
+// Advanced Custom Fields data.
+$post->set_acf(
+    [
+        'key'   => 'repeater_field_key',
+        'value' => [
+            [
+                'key'   => 'repeater_value_1',
+                'value' => '...',
+            ],
+            [
+                'key'   => 'repeater_value_2',
+                'value' => '...',
+            ],
+        ],
+        [
+            'key'   => 'single_field_key',
+            'value' => '...',
+        ],
+        [
+            'key'   => 'attachment_field_key',
+            'value' => 'oopi_attachment_123456',
+        ],
+    ]
+);
 
 // Try to save the post.
 try {

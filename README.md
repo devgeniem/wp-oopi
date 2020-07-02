@@ -54,7 +54,7 @@ The first step in the import process is to set the data for the importer. This f
   - `post` *(object) (Required)* The basic [WP post](https://codex.wordpress.org/Class_Reference/WP_Post) object data as a `stdClass` object.
   - `attachments` *(array) (Optional)* An array of attachment objects containing:
     - `id` *(string) (Required)* An unique id identifying the object in the external data source.
-    - `src` *(string) (Required)* The source from which to upload the image into WordPress. 
+    - `src` *(string) (Required)* The source from which to upload the image into WordPress.
       - *The plugin currently supports only image files!*
     - `alt` *(string) (Optional)* The alt text for the image. This is saved into postmeta.
     - `caption` *(string) (Optional)* The file caption text.
@@ -63,8 +63,8 @@ The first step in the import process is to set the data for the importer. This f
   - `taxonomies` *(array) (Optional)* An array containing either-or:
     - *(Geniem\Oopi\Term)* Oopi Term object.
       - _If the Oopi term holds a WP_Term object, importing will override existing term data._
-    - *(array|object)* Raw data will be mapped into a Term object. 
-      - `oopi_id` *(string) (Required)* All terms must contain an id. 
+    - *(array|object)* Raw data will be mapped into a Term object.
+      - `oopi_id` *(string) (Required)* All terms must contain an id.
       - `slug` *(string) (Required)* The taxonomy term slug.
       - `name` *(string) (Required)* The taxonomy term display name.
       - `taxonomy` *(string) (Required)* The taxonomy name, for example `category`.
@@ -76,9 +76,7 @@ The first step in the import process is to set the data for the importer. This f
 
 #### Example usage
 
-```php
-$post->set_data( $my_raw_post_data );
-```
+See [the example post](./docs/examples/example-post.php).
 
 ##### Example data in JSON format
 
@@ -105,6 +103,7 @@ $post->set_data( $my_raw_post_data );
   ],
   "taxonomies": [
     {
+      "oopi_id": "my-term-123",
       "slug": "my-term",
       "taxonomy": "post_tag"
     }
