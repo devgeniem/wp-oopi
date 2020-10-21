@@ -63,7 +63,7 @@ $oopi_term->set_data(
 // Set the term language and set the master id.
 // In this case 'my-original-term' would be the Oopi id
 // of the previously imported term in the main language.
-// The term's Oopi id and slug must be identical.
+// The term's slug must be unique.
 $oopi_term->set_language( new Language( 'en', 'my-original-term' ) );
 
 // Set the term into the array.
