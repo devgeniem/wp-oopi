@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.3.2] - 2020-10-11
 
-### Changed
+### Fixed
+- Added null check for term localization.
 
+### Changed
 - Fixed the term translation and ACF repeater field example code.
 
 ## [0.3.1] - 2020-07-01

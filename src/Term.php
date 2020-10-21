@@ -243,7 +243,7 @@ class Term {
      *
      * @return Language
      */
-    public function get_language() : Language {
+    public function get_language() : ?Language {
         return $this->language;
     }
 

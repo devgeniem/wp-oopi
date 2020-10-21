@@ -1151,7 +1151,9 @@ class Post {
                 $term->identify();
 
                 // Handle localization.
-                Localization\Controller::set_term_language( $term, $this );
+                if ( $term->get_language() !== null ) {
+                    Localization\Controller::set_term_language( $term, $this );
+                }
 
                 // Add term id.
                 if ( isset( $term_ids_by_tax[ $taxonomy ] ) ) {
@@ -1218,7 +1220,10 @@ class Post {
                         $term->identify();
 
                         // Handle localization.
-                        Localization\Controller::set_term_language( $term, $this );
+                        if ( $term->get_language() !== null ) {
+                            Localization\Controller::set_term_language( $term, $this );
+                        }
+                        
                         $terms[] = $term->get_term_id();
                     }
                     if ( count( $terms ) ) {
