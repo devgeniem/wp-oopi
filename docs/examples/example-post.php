@@ -52,18 +52,19 @@ $post->set_meta(
 );
 
 // Create a category term.
-$oopi_term = new Term( 'my-term-2' );
+$oopi_term = new Term( 'my-translated-term' );
 $oopi_term->set_data(
     [
-        'slug'     => 'my-term',
-        'name'     => 'My term',
+        'slug'     => 'my-translated-term',
+        'name'     => 'My translated term',
         'taxonomy' => 'category',
     ]
 );
 // Set the term language and set the master id.
-// In this case 'my-term-1' would be the Oopi id
+// In this case 'my-original-term' would be the Oopi id
 // of the previously imported term in the main language.
-$oopi_term->set_language( new Language( 'en', 'my-term-1' ) );
+// The term's Oopi id and slug must be identical.
+$oopi_term->set_language( new Language( 'en', 'my-original-term' ) );
 
 // Set the term into the array.
 $post->set_taxonomies(
@@ -75,15 +76,17 @@ $post->set_taxonomies(
 // Advanced Custom Fields data.
 $post->set_acf(
     [
-        'key'   => 'repeater_field_key',
-        'value' => [
-            [
-                'key'   => 'repeater_value_1',
-                'value' => '...',
-            ],
-            [
-                'key'   => 'repeater_value_2',
-                'value' => '...',
+        [
+            'key'   => 'repeater_field_key',
+            'value' => [
+                [
+                    'sub_field_key'         => '...',
+                    'another_sub_field_key' => '...',
+                ],
+                [
+                    'sub_field_key'         => '...',
+                    'another_sub_field_key' => '...',
+                ],
             ],
         ],
         [
