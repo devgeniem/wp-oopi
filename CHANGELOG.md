@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.4] - 2020-11-16
+
 ### Fixed
 - Fixed term handling in case of an already reserved slug.
 
