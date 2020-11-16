@@ -116,13 +116,21 @@ class Term {
     public function get_term() : ?WP_Term {
         if ( empty( $this->term ) ) {
             $term_id    = Storage::get_term_id_by_oopi_id( $this->get_oopi_id() );
-            $this->term = get_term( $term_id );
+            $term_by_id = get_term( $term_id );
+            $this->term = $term_by_id instanceof WP_Term ? $term_by_id : null;
         }
 
         // If no term is found with the Oopi id, try to find by slug.
         if ( ! $this->term instanceof WP_Term ) {
             // Fetch the WP term object.
-            $this->term = Storage::get_term_by_slug( $this->get_slug(), $this->get_taxonomy() );
+            $term_by_slug = Storage::get_term_by_slug( $this->get_slug(), $this->get_taxonomy() );
+            if ( $term_by_slug instanceof WP_Term ) {
+                $existing_oopi_id = get_term_meta( $term_by_slug->term_id, Storage::get_idenfiticator(), true );
+                // Set term if it does not belong to another Oopi term.
+                if ( empty( $existing_oopi_id ) ) {
+                    $this->term = $term_by_slug;
+                }
+            }
         }
 
         return $this->term;

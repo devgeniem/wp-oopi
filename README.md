@@ -65,7 +65,7 @@ The first step in the import process is to set the data for the importer. This f
       - _If the Oopi term holds a WP_Term object, importing will override existing term data._
     - *(array|object)* Raw data will be mapped into a Term object.
       - `oopi_id` *(string) (Required)* All terms must contain an id.
-      - `slug` *(string) (Required)* The taxonomy term slug.
+      - `slug` *(string) (Required)* The taxonomy term slug. The term slugs must be unique, ie. they can not collide between different language versions.
       - `name` *(string) (Required)* The taxonomy term display name.
       - `taxonomy` *(string) (Required)* The taxonomy name, for example `category`.
   - `acf` *(array) (Optional)* An array of Advanced Custom Fields data objects containing:
