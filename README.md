@@ -1,8 +1,8 @@
 ![geniem-github-banner](https://cloud.githubusercontent.com/assets/5691777/14319886/9ae46166-fc1b-11e5-9630-d60aa3dc4f9e.png)
 
-# Oopi
+# OOPI
 
-**Oopi** is a WordPress importer plugin enabling importing WordPress data from external sources through an object-oriented functional API.
+**OOPI** (an acronym from "object-oriented, programming and importer) is a WordPress plugin providing an object-oriented library to ease and give structure for importing data into WordPress from external sources.
 
 ## Installation
 
@@ -42,10 +42,7 @@ To start a new import process call the Post class constructor and pass a unique 
 $post = new \Geniem\Oopi\Post( 'my_id_1234' );
 ```
 
-
-
 #### set_data() `public`
-
 The first step in the import process is to set the data for the importer. This funtion takes a full importer object as a parameter, validates all fields and sets the data into the corresponding class properties. To check if the data is valid after setting it, you can call the `get_errors()` which will return an array of occurred errors.
 
 ##### Parameters
@@ -61,8 +58,8 @@ The first step in the import process is to set the data for the importer. This f
     - `description` *(string) (Optional)* The file description text.
   - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
   - `taxonomies` *(array) (Optional)* An array containing either-or:
-    - *(Geniem\Oopi\Term)* Oopi Term object.
-      - _If the Oopi term holds a WP_Term object, importing will override existing term data._
+    - *(Geniem\Oopi\Term)* OOPI Term object.
+      - _If the OOPI term holds a WP_Term object, importing will override existing term data._
     - *(array|object)* Raw data will be mapped into a Term object.
       - `oopi_id` *(string) (Required)* All terms must contain an id.
       - `slug` *(string) (Required)* The taxonomy term slug. The term slugs must be unique, ie. they can not collide between different language versions.
@@ -72,7 +69,7 @@ The first step in the import process is to set the data for the importer. This f
     - `type` *(string) (Required)* The ACF field type ([types](https://www.advancedcustomfields.com/resources/#field-types)).
     - `key` *(string) (Required)* The ACF field key. This must be the unique key defined for the field.
     - `value` *(mixed) (Required)* The data value matching the field type specifications.
-  - `language` *(Geniem\Oopi\Language|object|array) (Optional)* Localization information in an Oopi Language object or raw data. Raw data will be converted into a Language instance.
+  - `language` *(Geniem\Oopi\Language|object|array) (Optional)* Localization information in an OOPI Language object or raw data. Raw data will be converted into a Language instance.
 
 #### Example usage
 

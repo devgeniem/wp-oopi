@@ -3,9 +3,14 @@
  * The Term class is used to import terms into WordPress.
  */
 
-namespace Geniem\Oopi;
+namespace Geniem\Oopi\Importable;
 
-use Geniem\Oopi\Traits\PropertyBinder;
+use Geniem\Oopi\Interfaces\ErrorHandler;
+use Geniem\Oopi\Interfaces\Importable;
+use Geniem\Oopi\Language;
+use Geniem\Oopi\Storage;
+use Geniem\Oopi\Traits\ImporterAccessing;
+use Geniem\Oopi\Traits\PropertyBinding;
 use WP_Term;
 
 /**
@@ -15,12 +20,17 @@ use WP_Term;
  *
  * @package Geniem\Oopi
  */
-class Term {
+class Term implements Importable {
 
     /**
      * Add the set_data() binding method.
      */
-    use PropertyBinder;
+    use PropertyBinding;
+
+    /**
+     * Add the importer accessors.
+     */
+    use ImporterAccessing;
 
     /**
      * A unique id for external identification.
@@ -109,6 +119,15 @@ class Term {
     }
 
     /**
+     * Get the term id.
+     *
+     * @return int
+     */
+    public function get_wp_id(): ?int {
+        return $this->get_term_id();
+    }
+
+    /**
      * Get the term.
      *
      * @return WP_Term
@@ -139,7 +158,7 @@ class Term {
     /**
      * Set the term.
      *
-     * @param WP_Term $term A WP term object.
+     * @param WP_Term|null $term A WP term object.
      *
      * @return Term Return self to enable chaining.
      */
@@ -291,20 +310,14 @@ class Term {
     }
 
     /**
-     * Adds term meta rows for matching a WP term with an external source.
+     * Validate the term object data.
+     *
+     * @param ErrorHandler $error_hander The error handler to store all validation errors.
+     *
+     * @return bool
      */
-    public function identify() {
-        $id_prefix = Settings::get( 'id_prefix' );
-
-        // Remove the trailing '_'.
-        $identificator = rtrim( $id_prefix, '_' );
-
-        // Set the queryable identificator.
-        // Example: meta_key = 'oopi_id', meta_value = 12345
-        add_term_meta( $this->term->term_id, $identificator, $this->oopi_id, true );
-
-        // Set the indexed indentificator.
-        // Example: meta_key = 'oopi_id_12345', meta_value = 12345
-        add_term_meta( $this->term->term_id, $id_prefix . $this->oopi_id, $this->oopi_id, true );
+    public function validate( ErrorHandler $error_hander ) : bool {
+        // TODO: Implement validate() method.
+        return true;
     }
 }

@@ -6,7 +6,8 @@
 
 namespace Geniem\Oopi;
 
-use Geniem\Oopi\Traits\PropertyBinder;
+use Geniem\Oopi\Interfaces\Importable;
+use Geniem\Oopi\Traits\PropertyBinding;
 
 /**
  * Class Language
@@ -18,7 +19,14 @@ class Language {
     /**
      * Add the set_data() binding method.
      */
-    use PropertyBinder;
+    use PropertyBinding;
+
+    /**
+     * The importable object.
+     *
+     * @var Importable
+     */
+    protected $importable;
 
     /**
      * The locale.

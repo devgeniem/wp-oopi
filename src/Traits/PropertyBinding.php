@@ -6,17 +6,17 @@
 namespace Geniem\Oopi\Traits;
 
 /**
- * Trait PropertyBinder
+ * Trait PropertyBinding
  */
-trait PropertyBinder {
+trait PropertyBinding {
 
     /**
      * A helper method for adding all data with a single call.
      *
-     * @param array|object $data The term data.
+     * @param mixed $data The term data.
      * @return self
      */
-    public function set_data( $data ) : self {
+    public function set_data( $data ) {
         foreach ( (array) $data as $key => $value ) {
             if ( $key === 'oopi_id' ) {
                 // Not allowed after instantiation.

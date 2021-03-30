@@ -3,12 +3,12 @@
  * The Post class is used to import posts into WordPres.
  */
 
-namespace Geniem\Oopi;
+namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Exception\PostException as PostException;
+use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Localization\Polylang as Polylang;
 use WP_Post;
-use WP_Term;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @package Geniem\Oopi
  */
-class Post {
+class Post implements Importable {
 
     /**
      * A unique id for external identification.
@@ -232,7 +232,7 @@ class Post {
     /**
      * Encode an instance into JSON.
      *
-     * @return array
+     * @return string|false The JSON encoded string, or false if it cannot be encoded.
      */
     public function to_json() {
         return wp_json_encode( get_object_vars( $this ) );
@@ -241,68 +241,65 @@ class Post {
     /**
      * Post constructor.
      *
-     * @param string|null $oopi_id The external API id.
+     * @param string $oopi_id The external id.
      */
-    public function __construct( $oopi_id = null ) {
-        if ( null === $oopi_id ) {
-            // @codingStandardsIgnoreStart
-            $this->set_error( 'id', 'oopi_id', __( 'A unique id must be set for the Post constructor.', 'oopi' ) );
-            // @codingStandardsIgnoreEnd
-        }
-        else {
-            // Set the Importer id.
-            $this->oopi_id = $oopi_id;
-            // Fetch the WP post id, if it exists.
-            $this->post_id = Storage::get_post_id_by_oopi_id( $oopi_id );
-            if ( $this->post_id ) {
-                // Fetch the existing WP post object.
-                $this->post = get_post( $this->post_id );
-                // Unset the time values to ensure updates.
-                unset( $this->post->post_date );
-                unset( $this->post->post_date_gmt );
-                unset( $this->post->post_modified );
-                unset( $this->post->post_modified_gmt );
-            }
+    public function __construct( string $oopi_id ) {
+        // Set the Importer id.
+        $this->oopi_id = $oopi_id;
+        // Fetch the WP post id, if it exists.
+        $this->post_id = Storage::get_post_id_by_oopi_id( $oopi_id );
+        if ( $this->post_id ) {
+            // Fetch the existing WP post object.
+            $this->post = get_post( $this->post_id );
+            // Unset the time values to ensure updates.
+            unset( $this->post->post_date );
+            unset( $this->post->post_date_gmt );
+            unset( $this->post->post_modified );
+            unset( $this->post->post_modified_gmt );
         }
     }
 
     /**
      * Handles a full importer object data setting.
      *
-     * @param object $raw_post An object following the plugin specification.
+     * @param object $data An object following the plugin specification.
+     *
+     * @return Post By returning self, setters are chainable.
      */
-    public function set_data( $raw_post ) {
-        $this->set_post( $raw_post->post );
+    public function set_data( $data ) : Post {
+        $this->set_post( $data->post );
 
         // Attachments
-        if ( isset( $raw_post->attachments ) && is_array( $raw_post->attachments ) ) {
-            $this->set_attachments( $raw_post->attachments );
+        if ( isset( $data->attachments ) && is_array( $data->attachments ) ) {
+            $this->set_attachments( $data->attachments );
         }
 
         // Post meta
-        if ( isset( $raw_post->meta ) ) {
-            $this->set_meta( $raw_post->meta );
+        if ( isset( $data->meta ) ) {
+            $this->set_meta( $data->meta );
         }
 
         // Taxonomies
-        if ( isset( $raw_post->taxonomies ) && is_array( $raw_post->taxonomies ) ) {
-            $this->set_taxonomies( $raw_post->taxonomies );
+        if ( isset( $data->taxonomies ) && is_array( $data->taxonomies ) ) {
+            $this->set_taxonomies( $data->taxonomies );
         }
 
         // Advanced custom fields
-        if ( isset( $raw_post->acf ) && is_array( $raw_post->acf ) ) {
-            $this->set_acf( $raw_post->acf );
+        if ( isset( $data->acf ) && is_array( $data->acf ) ) {
+            $this->set_acf( $data->acf );
         }
 
         // If post object has a language object property, set post language.
-        if ( isset( $raw_post->language ) ) {
-            $this->set_language( $raw_post->language );
+        if ( isset( $data->language ) ) {
+            $this->set_language( $data->language );
         }
 
         // @deprecated: If post object has i18n object property, set post language
-        if ( isset( $raw_post->i18n ) ) {
-            $this->set_i18n( $raw_post->i18n );
+        if ( isset( $data->i18n ) ) {
+            $this->set_i18n( $data->i18n );
         }
+
+        return $this;
     }
 
     /**
@@ -673,13 +670,13 @@ class Post {
     /**
      * Stores the post instance and all its data into the database.
      *
-     * @throws PostException If the post data is not valid.
+     * TODO: Move to the importer class and rename as 'import'.
      *
-     * @param boolean $force_save Force saving even if errors occurred.
+     * @throws PostException If the post data is not valid.
      *
      * @return int Post id.
      */
-    public function save( $force_save = false ) {
+    public function save() {
 
         // If this is not forced or a rollback save, check for errors before the saving process.
         if ( ! $force_save || ! $this->rollback_mode ) {
@@ -924,7 +921,7 @@ class Post {
             } // End if().
         } // End foreach().
 
-        // This function is done.
+        // Done saving.
         $this->set_save_state( 'attachments' );
     }
 
@@ -1122,7 +1119,7 @@ class Post {
             }
         }
 
-        // This functions is done.
+        // Saving meta is done.
         $this->set_save_state( 'meta' );
     }
 
@@ -1169,7 +1166,7 @@ class Post {
             }
         }
 
-        // This functions is done.
+        // Done saving.
         $this->set_save_state( 'taxonomies' );
     }
 
@@ -1223,7 +1220,7 @@ class Post {
                         if ( $term->get_language() !== null ) {
                             Localization\Controller::set_term_language( $term, $this );
                         }
-                        
+
                         $terms[] = $term->get_term_id();
                     }
                     if ( count( $terms ) ) {
@@ -1251,7 +1248,7 @@ class Post {
             }
         }
 
-        // This functions is done.
+        // Done saving.
         $this->set_save_state( 'acf' );
     }
 
