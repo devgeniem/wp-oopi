@@ -20,9 +20,10 @@ interface Importer {
      *
      * The importable should be stored as an object property.
      *
-     * @param Importable $object The object to be imported.
+     * @param Importable        $object        The object to be imported.
+     * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( Importable $object );
+    public function __construct( Importable $object, ?ErrorHandler $error_handler = null );
 
     /**
      * Import the object into WordPress.

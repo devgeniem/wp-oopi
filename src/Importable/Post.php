@@ -5,9 +5,18 @@
 
 namespace Geniem\Oopi\Importable;
 
-use Geniem\Oopi\Exception\PostException as PostException;
+use Geniem\Oopi\Exception\PostException;
+use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Importer\PostImporter;
+use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
+use Geniem\Oopi\Interfaces\Importer;
+use Geniem\Oopi\Language;
+use Geniem\Oopi\Localization\Controller;
 use Geniem\Oopi\Localization\Polylang as Polylang;
+use Geniem\Oopi\OopiErrorHandler;
+use Geniem\Oopi\Storage;
+use Geniem\Oopi\Util;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,9 +38,23 @@ class Post implements Importable {
     protected $oopi_id;
 
     /**
+     * The importer.
+     *
+     * @var Importer
+     */
+    protected $importer;
+
+    /**
+     * The error handler.
+     *
+     * @var ErrorHandler
+     */
+    protected $error_handler;
+
+    /**
      * If this is an existing posts, the WP id is stored here.
      *
-     * @var int|boolean
+     * @var int
      */
     protected $post_id;
 
@@ -98,47 +121,11 @@ class Post implements Importable {
     protected $acf = [];
 
     /**
-     * An array holding save functions already run.
-     *
-     * @var array
-     */
-    protected $save_state = [];
-
-    /**
-     * This value is true when rolling back a previous import state.
-     * The rollback mode skips validations and logging.
+     * Set this to true to skip validation and force saving.
      *
      * @var bool
      */
-    protected $rollback_mode = false;
-
-    /**
-     * Get all save functions that have been run.
-     *
-     * @return array
-     */
-    public function get_savestate() {
-        return $this->save_state;
-    }
-
-    /**
-     * Use this to save the state of run save functions.
-     *
-     * @param string $save_state The object key for the saved data.
-     */
-    public function set_save_state( $save_state ) {
-        $this->save_state[ $save_state ] = $save_state;
-    }
-
-    /**
-     * Check if a specific object has been saved.
-     *
-     * @param string $saved The object key.
-     * @return boolean
-     */
-    public function is_saved( $saved ) {
-        return isset( $this->save_state[ $saved ] );
-    }
+    protected $force_save = false;
 
     /**
      * Getter for post_id
@@ -150,14 +137,25 @@ class Post implements Importable {
     }
 
     /**
+     * Set the post id.
+     *
+     * @param int $post_id The post_id.
+     *
+     * @return Post Return self to enable chaining.
+     */
+    public function set_post_id( int $post_id ): Post {
+        $this->post_id = $post_id;
+
+        return $this;
+    }
+
+    /**
      * Getter for the post name in the set post data.
      *
      * @return string
      */
     public function get_post_name() {
-        $post_name = $this->post->post_name ?? '';
-
-        return $post_name;
+        return $this->post->post_name ?? '';
     }
 
     /**
@@ -165,7 +163,7 @@ class Post implements Importable {
      *
      * @return string
      */
-    public function get_oopi_id() {
+    public function get_oopi_id(): string {
         return $this->oopi_id;
     }
 
@@ -179,54 +177,99 @@ class Post implements Importable {
     }
 
     /**
-     * Error messages under correspondings scopes as the key.
-     * Example:
-     *      [
-     *          'post' => [
-     *              'post_title' => 'The post title is not valid.'
-     *          ]
-     *      ]
-     *
-     * @var array
-     */
-    protected $errors = [];
-
-    /**
-     * Sets a single error message or a full error array depending on the $key value.
-     *
-     * @param string $scope The error scope.
-     * @param mixed  $data  The data related to the error.
-     * @param string $error The error message.
-     */
-    public function set_error( $scope = '', $data = '', $error = '' ) {
-
-        // Get needed variables
-        $oopi_id = $this->oopi_id;
-
-        $this->errors[ $scope ] = $this->errors[ $scope ] ?? [];
-
-        $message = '(' . Settings::get( 'id_prefix' ) . $oopi_id . ') ' . $error;
-
-        $this->errors[ $scope ][] = [
-            'message' => $message,
-            'data'    => $data,
-        ];
-
-        // Maybe log errors.
-        if ( Settings::get( 'log_errors' ) ) {
-            // @codingStandardsIgnoreStart
-            error_log( 'OOPI: ' . $error );
-            // @codingStandardsIgnoreEnd
-        }
-    }
-
-    /**
-     * Returns all errors.
+     * Get the attachments.
      *
      * @return array
      */
-    public function get_errors() {
-        return $this->errors;
+    public function get_attachments(): array {
+        return $this->attachments;
+    }
+
+    /**
+     * Get the attachment_ids.
+     *
+     * @return array
+     */
+    public function get_attachment_ids(): array {
+        return $this->attachment_ids;
+    }
+
+    /**
+     * Get the meta.
+     *
+     * @return array
+     */
+    public function get_meta(): array {
+        return $this->meta;
+    }
+
+    /**
+     * Get the taxonomies.
+     *
+     * @return Term[]
+     */
+    public function get_taxonomies(): array {
+        return $this->taxonomies;
+    }
+
+    /**
+     * Get the acf.
+     *
+     * @return array
+     */
+    public function get_acf(): array {
+        return $this->acf;
+    }
+
+    /**
+     * Get the force_save.
+     *
+     * @return bool
+     */
+    public function is_force_save(): bool {
+        return $this->force_save;
+    }
+
+    /**
+     * Set the force_save.
+     *
+     * @param bool $force_save The force_save.
+     *
+     * @return Post Return self to enable chaining.
+     */
+    public function set_force_save( ?bool $force_save ): Post {
+        $this->force_save = $force_save;
+
+        return $this;
+    }
+
+    /**
+     * Getter for the post id.
+     *
+     * @return int|null
+     */
+    public function get_wp_id(): ?int {
+        return $this->get_post_id();
+    }
+
+    /**
+     * Setter for importer.
+     *
+     * @param Importer $importer The importer.
+     *
+     * @return mixed|void
+     */
+    public function set_importer( Importer $importer ) {
+        $this->importer = $importer;
+    }
+
+    /**
+     * Getter for importer.
+     *
+     * @return Importer
+     */
+    public function get_importer(): Importer {
+        return $this->importer;
     }
 
     /**
@@ -239,15 +282,38 @@ class Post implements Importable {
     }
 
     /**
+     * The error scope.
+     */
+    const ESCOPE = 'post';
+
+    /**
      * Post constructor.
      *
-     * @param string $oopi_id The external id.
+     * @param string            $oopi_id       The external id.
+     * @param Importer|null     $importer      Optionally, an importer can be set during instantiation.
+     * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( string $oopi_id ) {
+    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null ) {
+        // If no error handler is set, use the default one.
+        if ( empty( $error_handler ) ) {
+            $this->error_handler = new OopiErrorHandler();
+        }
+
+        // If no importer set, use the default one.
+        if ( empty( $importer ) ) {
+            try {
+                $this->importer = new PostImporter( $this, $error_handler );
+            }
+            catch ( TypeException $e ) {
+                // This should never happen.
+                $this->error_handler->set_error( static::ESCOPE, $e->getTrace(), $e->getMessage() );
+            }
+        }
+
         // Set the Importer id.
         $this->oopi_id = $oopi_id;
         // Fetch the WP post id, if it exists.
-        $this->post_id = Storage::get_post_id_by_oopi_id( $oopi_id );
+        $this->set_post_id( Storage::get_post_id_by_oopi_id( $oopi_id ) ?: null );
         if ( $this->post_id ) {
             // Fetch the existing WP post object.
             $this->post = get_post( $this->post_id );
@@ -305,10 +371,10 @@ class Post implements Importable {
     /**
      * Sets the basic data of a post.
      *
-     * @param  WP_Post|object $post_obj Post object.
-     * @return WP_Post|object Post object.
+     * @param  WP_Post $post_obj Post object.
+     * @return WP_Post Post object.
      */
-    public function set_post( $post_obj ) {
+    public function set_post( WP_Post $post_obj ) {
         // If the post already exists, update values.
         if ( ! empty( $this->post ) ) {
             foreach ( get_object_vars( $post_obj ) as $attr => $value ) {
@@ -331,34 +397,43 @@ class Post implements Importable {
     }
 
     /**
+     * Return the related WP post object.
+     *
+     * @return WP_Post|null
+     */
+    public function get_post() : ?WP_Post {
+        return $this->post;
+    }
+
+    /**
      * Validates the post object data.
      *
      * @param \WP_Post $post_obj An WP_Post instance.
      */
     public function validate_post( $post_obj ) {
-        $err_scope = 'post';
+        $e_scope = static::ESCOPE;
 
         // Validate the author.
         if ( isset( $post_obj->author ) ) {
             $user = \get_userdata( $post_obj->author );
             if ( false === $user ) {
                 $err = __( 'Error in the "author" column. The value must be a valid user id.', 'oopi' );
-                $this->set_error( $err_scope, 'author', $err );
+                $this->error_handler->set_error( $e_scope, 'author', $err );
             }
         }
 
         // Validate date values
         if ( isset( $post_obj->post_date ) ) {
-            $this->validate_date( $post_obj->post_date, 'post_date', $err_scope );
+            $this->validate_date( $post_obj->post_date, 'post_date', $e_scope );
         }
         if ( isset( $post_obj->post_date_gmt ) ) {
-            $this->validate_date( $post_obj->post_date_gmt, 'post_date_gmt', $err_scope );
+            $this->validate_date( $post_obj->post_date_gmt, 'post_date_gmt', $e_scope );
         }
         if ( isset( $post_obj->post_modified ) ) {
-            $this->validate_date( $post_obj->post_modified, 'post_modified', $err_scope );
+            $this->validate_date( $post_obj->post_modified, 'post_modified', $e_scope );
         }
         if ( isset( $post_obj->post_modified_gtm ) ) {
-            $this->validate_date( $post_obj->post_modified_gtm, 'post_modified_gtm', $err_scope );
+            $this->validate_date( $post_obj->post_modified_gtm, 'post_modified_gtm', $e_scope );
         }
 
         // Validate the post status.
@@ -368,12 +443,13 @@ class Post implements Importable {
                 // @codingStandardsIgnoreStart
                 $err = __( 'Error in the "post_status" column. The post is currently trashed, please solve before importing.', 'oopi' );
                 // @codingStandardsIgnoreEnd
-                $this->set_error( $err_scope, 'post_status', $err );
-            } elseif ( ! array_key_exists( $post_obj->post_status, $post_statuses ) ) {
+                $this->error_handler->set_error( $e_scope, 'post_status', $err );
+            }
+            elseif ( ! array_key_exists( $post_obj->post_status, $post_statuses ) ) {
                 // @codingStandardsIgnoreStart
                 $err = __( 'Error in the "post_status" column. The value is not a valid post status.', 'oopi' );
                 // @codingStandardsIgnoreEnd
-                $this->set_error( $err_scope, 'post_status', $err );
+                $this->error_handler->set_error( $e_scope, 'post_status', $err );
             }
         }
 
@@ -384,7 +460,7 @@ class Post implements Importable {
                 // @codingStandardsIgnoreStart
                 $err = __( 'Error in the "comment_status" column. The value is not a valid comment status.', 'oopi' );
                 // @codingStandardsIgnoreEnd
-                $this->set_error( $err_scope, 'comment_status', $err );
+                $this->error_handler->set_error( $e_scope, 'comment_status', $err );
             }
         }
 
@@ -396,7 +472,7 @@ class Post implements Importable {
                 $parent_post_id = Storage::get_post_id_by_oopi_id( $parent_id );
                 if ( $parent_post_id === false ) {
                     $err = __( 'Error in the "post_parent" column. The queried post parent was not found.', 'oopi' ); // phpcs:ignore
-                    $this->set_error( $err_scope, 'menu_order', $err );
+                    $this->error_handler->set_error( $e_scope, 'menu_order', $err );
                 }
                 else {
                     // Set parent post id.
@@ -407,7 +483,7 @@ class Post implements Importable {
                 // The parent is a WP post id.
                 if ( \get_post( $parent_id ) === null ) {
                     $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'oopi' ); // phpcs:ignore
-                    $this->set_error( $err_scope, 'menu_order', $err );
+                    $this->error_handler->set_error( $e_scope, 'menu_order', $err );
                 }
             }
         }
@@ -416,7 +492,7 @@ class Post implements Importable {
         if ( isset( $post_obj->menu_order ) ) {
             if ( ! is_integer( $post_obj->menu_order ) ) {
                 $err = __( 'Error in the "menu_order" column. The value must be an integer.', 'oopi' );
-                $this->set_error( $err_scope, 'menu_order', $err );
+                $this->error_handler->set_error( $e_scope, 'menu_order', $err );
             }
         }
 
@@ -425,7 +501,7 @@ class Post implements Importable {
             $post_types = get_post_types();
             if ( ! array_key_exists( $post_obj->post_type, $post_types ) ) {
                 $err = __( 'Error in the "post_type" column. The value does not match a registered post type.', 'oopi' ); // phpcs:ignore
-                $this->set_error( $err_scope, 'post_type', $err );
+                $this->error_handler->set_error( $e_scope, 'post_type', $err );
             }
         }
     }
@@ -445,7 +521,7 @@ class Post implements Importable {
                 __( 'Error in the %s column. The value is not a valid datetime string.', 'oopi' ),
                 $col_name
             );
-            $this->set_error( $err_scope, $col_name, $err );
+            $this->error_handler->set_error( $err_scope, $col_name, $err );
         }
     }
 
@@ -485,7 +561,7 @@ class Post implements Importable {
     public function validate_meta( $meta ) {
         $errors = [];
         if ( ! empty( $errors ) ) {
-            $this->set_error( 'meta', $errors );
+            $this->error_handler->set_error( 'meta', $errors );
         }
     }
 
@@ -511,7 +587,7 @@ class Post implements Importable {
      *          ],
      *      ];
      *
-     * @param array $tax_array The taxonomy data.
+     * @param array|null $tax_array The taxonomy and term array.
      */
     public function set_taxonomies( ?array $tax_array = [] ) {
         // Filter values before validating.
@@ -533,7 +609,7 @@ class Post implements Importable {
     public function validate_taxonomies( $taxonomies ) {
         if ( ! is_array( $taxonomies ) ) {
             $err = __( 'Error in the taxonomies. Taxonomies must be passed in an array.', 'oopi' ); // phpcs:ignore
-            $this->set_error( 'taxonomy', $taxonomies, $err );
+            $this->error_handler->set_error( 'taxonomy', $taxonomies, $err );
             return;
         }
 
@@ -549,11 +625,11 @@ class Post implements Importable {
                     __( 'Error in the %s taxonomy. The taxonomy is not registerd.', 'oopi' ),
                     $term->get_taxonomy()
                 );
-                $this->set_error( 'taxonomy', $term, $err );
+                $this->error_handler->set_error( 'taxonomy', $term, $err );
             }
             if ( empty( $term->get_oopi_id() ) ) {
                 $err = __( 'Error in a term. Required `oopi_id` property not set.', 'oopi' );
-                $this->set_error( 'taxonomy', $term, $err );
+                $this->error_handler->set_error( 'taxonomy', $term, $err );
             }
             apply_filters( 'oopi_validate_taxonomies', $taxonomies );
         }
@@ -584,8 +660,8 @@ class Post implements Importable {
      */
     public function validate_acf( $acf ) {
         $errors = [];
-        if ( ! empty( $errors ) ) {
-            $this->set_error( 'acf', $errors );
+        if ( $acf && ! empty( $errors ) ) {
+            $this->error_handler->set_error( 'acf', $errors );
         }
     }
 
@@ -642,18 +718,18 @@ class Post implements Importable {
     public function validate_i18n( $i18n ) {
 
         // Check if the polylang plugin is activated.
-        if ( Localization\Controller::get_activated_i18n_plugin( $this ) === false ) {
+        if ( Controller::get_activated_i18n_plugin( $this ) === false ) {
             return;
         }
 
         // Check if locale is set and in the current installation.
         if ( ! Util::get_prop( $i18n, 'locale' ) ) {
             $err = __( 'Error in the polylang data. The locale is not set.', 'oopi' );
-            $this->set_error( 'i18n', $i18n, $err );
+            $this->error_handler->set_error( 'i18n', $i18n, $err );
         }
         elseif ( ! in_array( Util::get_prop( $i18n, 'locale' ), Polylang::language_list(), true ) ) {
             $err = __( 'Error in the polylang data. The locale doesn\'t exist in the current WP installation', 'oopi' ); // phpcs:ignore
-            $this->set_error( 'i18n', $i18n, $err );
+            $this->error_handler->set_error( 'i18n', $i18n, $err );
         }
 
         // If a master post is set for the current post, check its validity.
@@ -661,7 +737,7 @@ class Post implements Importable {
         if ( $master ) {
             if ( Util::is_query_id( Util::get_prop( $master, 'query_key', '' ) ) === false ) {
                 $err = __( 'Error in the i18n data. The master query id is missing or invalid.', 'oopi' );
-                $this->set_error( 'i18n', $i18n, $err );
+                $this->error_handler->set_error( 'i18n', $i18n, $err );
             }
         }
 
@@ -670,695 +746,18 @@ class Post implements Importable {
     /**
      * Stores the post instance and all its data into the database.
      *
-     * TODO: Move to the importer class and rename as 'import'.
-     *
      * @throws PostException If the post data is not valid.
      *
-     * @return int Post id.
+     * @return int|null Post id or null if importing fails.
      */
-    public function save() {
-
-        // If this is not forced or a rollback save, check for errors before the saving process.
-        if ( ! $force_save || ! $this->rollback_mode ) {
-            $valid = $this->validate();
-            if ( ! $valid ) {
-                // Log this import.
-                new Log( $this );
-
-                throw new PostException(
-                    __( 'The post data was not valid. The import was canceled.', 'oopi' ),
-                    0,
-                    $this->errors
-                );
-            }
-        }
-
-        // Hook for running functionalities before saving the post.
-        do_action( 'oopi_before_post_save', $this );
-
-        $post_arr = (array) $this->post;
-
-        // Add filters for data modifications before and after importer related database actions.
-        add_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
-        add_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
-
-        // Run the WP save function.
-        $post_id = wp_insert_post( $post_arr );
-
-        $insert_err = '';
-        if ( empty( $post_id ) ) {
-            $insert_err = __(
-                'An unknown error occurred while inserting the post. The returned post id was empty.', 'oopi'
-            );
-
-        }
-        if ( $post_id instanceof \WP_Error ) {
-            $insert_err = $post_id->get_error_message();
-        }
-        if ( $insert_err ) {
-            $this->set_error( 'post', $post_arr, $insert_err );
-
-            // Log this import.
-            new Log( $this );
-
-            throw new PostException(
-                __( 'Unable to insert post. The import was canceled.', 'oopi' ),
-                0,
-                $this->errors
-            );
-        }
-
-        // Identify the post, if not yet done.
-        if ( empty( $this->post_id ) ) {
-            $this->post_id = $post_id;
-            $this->identify();
-        }
-
-        // Save localization data.
-        if ( ! empty( $this->language ) ) {
-            Localization\Controller::save_language( $this );
-        }
-
-        // Save attachments.
-        if ( ! empty( $this->attachments ) ) {
-            $this->save_attachments();
-        }
-
-        // Save metadata.
-        if ( ! empty( $this->meta ) ) {
-            $this->save_meta();
-        }
-
-        // Save taxonomies.
-        if ( ! empty( $this->taxonomies ) ) {
-            $this->save_taxonomies();
-        }
-
-        // Save acf data.
-        if ( ! empty( $this->acf ) ) {
-            $this->save_acf();
-        }
-
-        // If this is not forced or a rollback save, check for errors after save process.
-        if ( ! $force_save || ! $this->rollback_mode ) {
-            $valid = $this->validate();
-            if ( ! $valid ) {
-                // Log this import.
-                new Log( $this );
-
-                $rolled_back = $this->rollback();
-
-                // Set the correct error message.
-                $err = $rolled_back ?
-                    // Rollback error message
-                    __( 'An error occurred while saving the import data. Rolled back the last successful import.', 'oopi' ) :
-                    // Default error message
-                    __( 'An error occurred while saving the import data. Set the post status to "draft".', 'oopi' );
-
-                throw new PostException(
-                    $err,
-                    0,
-                    $this->errors
-                );
-            }
-        }
-
-        // This logs a successful import.
-        new Log( $this );
-
-        // Remove the custom filters.
-        remove_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
-        remove_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
-
-        // Hook for running functionalities after saving the post.
-        do_action( 'oopi_after_post_save', $this );
-
-        return $post_id;
-    }
-
-    /**
-     * Delete all data related to a single post.
-     * Note: This keeps the basic post data intact int the posts table.
-     */
-    public function delete_data() {
-
-        // This removes most of data related to a post.
-        Storage::delete_post_meta_data( $this->post_id );
-
-        // Delete all term relationships.
-        \wp_delete_object_term_relationships( $this->post_id, \get_taxonomies() );
-
-        // Run custom action for custom data.
-        // Use this if the data is not in the postmeta table.
-        do_action( 'oopi_delete_data', $this->post_id );
-    }
-
-    /**
-     * Saves the attachments of the post.
-     * Currently supports images.
-     *
-     * @todo add support for other media formats too
-     */
-    protected function save_attachments() {
-        // All of the following are required for the media_sideload_image function.
-        if ( ! function_exists( '\media_sideload_image' ) ) {
-            require_once( ABSPATH . 'wp-admin/includes/media.php' );
-        }
-        if ( ! function_exists( '\download_url' ) ) {
-            require_once( ABSPATH . 'wp-admin/includes/file.php' );
-        }
-        if ( ! function_exists( '\wp_read_image_metadata' ) ) {
-            require_once( ABSPATH . 'wp-admin/includes/image.php' );
-        }
-
-        $attachment_prefix      = Settings::get( 'attachment_prefix' );
-        $attachment_language    = Util::get_prop( $this->i18n, 'locale' );
-
-        foreach ( $this->attachments as &$attachment ) {
-
-            $attachment_id      = Util::get_prop( $attachment, 'id' );
-            $attachment_src     = Util::get_prop( $attachment, 'src' );
-            $attachment_post_id = Storage::get_attachment_post_id_by_attachment_id( $attachment_id );
-
-            if ( empty( $attachment_src ) || empty( $attachment_id ) ) {
-                // @codingStandardsIgnoreStart
-                $this->set_error( 'attachment', $attachment, __( 'The attachment object has missing parameters.', 'oopi' ) );
-                // @codingStandardsIgnoreEnd
-                continue;
-            }
-
-            // Check if attachment doesn't exists, and upload it.
-            if ( ! $attachment_post_id ) {
-
-                // Insert upload attachment from url
-                $attachment_post_id = $this->insert_attachment_from_url( $attachment_src, $attachment, $this->post_id );
-
-                // Something went wrong.
-                if ( is_wp_error( $attachment_post_id ) ) {
-                    // @codingStandardsIgnoreStart
-                    $this->set_error( 'attachment', $attachment, __( 'An error occurred uploading the file.', 'oopi' ) );
-                    // @codingStandardsIgnoreEnd
-                }
-
-                if ( $attachment_post_id ) {
-                    // Set indexed meta for fast queries.
-                    // Depending on the attachment prefix this would look something like:
-                    // meta_key             | meta_value
-                    // oopi_attachment_{1234} | 1234
-                    update_post_meta( $attachment_post_id, $attachment_prefix . $attachment_id, $attachment_id );
-                    // Set the generally queryable id.
-                    // Depending on the attachment prefix this would look something like:
-                    // meta_key       | meta_value
-                    // oopi_attachment  | 1234
-                    update_post_meta( $attachment_post_id, rtrim( $attachment_prefix, '_' ), $attachment_id );
-
-                    // Set the attachment locale if Polylang is active.
-                    if ( Polylang::pll() ) {
-                        $attachment_language = Util::get_prop( $this->i18n, 'locale' );
-
-                        if ( $attachment_language ) {
-                            Polylang::set_attachment_language( $attachment_post_id, $attachment_language );
-                        }
-                    }
-                } // End if().
-            } // End if().
-
-            // Update attachment meta and handle translations
-            if ( $attachment_post_id ) {
-
-                // Get attachment translations.
-                if ( Polylang::pll() ) {
-                    $attachment_post_id = Polylang::get_attachment_by_language(
-                        $attachment_post_id,
-                        $attachment_language
-                    );
-                }
-
-                // Update attachment info.
-                $attachment_args = [
-                    'ID'           => $attachment_post_id,
-                    'post_title'   => Util::get_prop( $attachment, 'title' ),
-                    'post_content' => Util::get_prop( $attachment, 'description' ),
-                    'post_excerpt' => Util::get_prop( $attachment, 'caption' ),
-                ];
-
-                // Save the attachment post object data
-                wp_update_post( $attachment_args );
-
-                // Get the alt text if set.
-                $alt_text = Util::get_prop( $attachment, 'alt' );
-
-                // If alt was empty, use caption as an alternative text.
-                $alt_text = $alt_text ?: Util::get_prop( $attachment, 'caption' );
-
-                if ( $alt_text ) {
-                    // Save image alt text into attachment post meta
-                    update_post_meta( $attachment_post_id, '_wp_attachment_image_alt', $alt_text );
-                }
-
-                // Set the attachment post_id.
-                $this->attachment_ids[ $attachment_prefix . $attachment_id ] = Util::set_prop( $attachment, 'post_id', $attachment_post_id );
-            } // End if().
-        } // End foreach().
-
-        // Done saving.
-        $this->set_save_state( 'attachments' );
-    }
-
-    /**
-     * Insert an attachment from an URL address.
-     *
-     * @param string $attachment_src Source file url.
-     * @param object $attachment     Post class instances attachment.
-     * @param int    $post_id        Attachments may be associated with a parent post or page.
-     *                               Specify the parent's post ID, or 0 if unattached.
-     *
-     * @return int   $attachment_id
-     */
-    protected function insert_attachment_from_url( $attachment_src, $attachment, $post_id ) {
-        $stream_context = null;
-
-        // If you want to ignore SSL Certificate chain errors, or just yeet it,
-        // define OOPI_IGNORE_SSL in your migration worker and set it true.
-        if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
-            $stream_context = stream_context_create( [
-                'ssl' => [
-                    'verify_peer'      => false,
-                    'verify_peer_name' => false,
-                ],
-            ] );
-        }
-
-        // Get filename from the url.
-        $file_name                  = basename( $attachment_src );
-        // Exif related variables
-        $exif_imagetype             = exif_imagetype( $attachment_src );
-        $exif_supported_imagetypes  = array(
-            IMAGETYPE_JPEG,
-            IMAGETYPE_TIFF_II,
-            IMAGETYPE_TIFF_MM
-        );
-
-        // If the file name does not appear to contain a suffix, add it.
-        if ( strpos( $file_name, '.' ) === false ) {
-            $exif_types = [
-                '.gif',
-                '.jpeg',
-                '.png',
-                '.swf',
-                '.psd',
-                '.bmp',
-                '.tiff',
-                '.tiff',
-                '.jpc',
-                '.jp2',
-                '.jpx',
-                '.jb2',
-                '.swc',
-                '.iff',
-                '.wbmp',
-                '.xbm',
-                '.ico',
-                '.webp',
-            ];
-            // See: https://www.php.net/manual/en/function.exif-imagetype.php#refsect1-function.exif-imagetype-constants
-            $file_name .= $exif_types[ $exif_imagetype - 1 ];
-        }
-
-        // Construct file local url.
-        $tmp_folder                 = Settings::get( 'tmp_folder' );
-        $local_image                = $tmp_folder . $file_name;
-
-        // Copy file to local image location
-        copy( $attachment_src, $local_image, $stream_context );
-
-        // If exif_read_data is callable and file type could contain exif data.
-        if ( is_callable( 'exif_read_data' ) && in_array( $exif_imagetype, $exif_supported_imagetypes ) ) {
-            // Manipulate image exif data to prevent.
-            $this->strip_unsupported_exif_data( $local_image );
-        }
-
-        // Get file from local temp folder.
-        $file_content = file_get_contents( $local_image, false, $stream_context );
-
-        // Upload file to uploads.
-        $upload = wp_upload_bits( $file_name, null, $file_content );
-
-        // After upload process we are free to delete the tmp image.
-        unlink( $local_image );
-
-        // If error occured during upload return false.
-        if ( ! empty( $upload['error'] ) ) {
-            return false;
-        }
-
-        // File variables
-        $file_path          = $upload['file'];
-        $file_type          = wp_check_filetype( $file_name, null );
-        $wp_upload_dir      = wp_upload_dir();
-
-        // wp_insert_attachment post info
-        $post_info = array(
-            'guid'           => $wp_upload_dir['url'] . '/' . $file_name,
-            'post_mime_type' => $file_type['type'],
-            'post_title'     => Util::get_prop( $attachment, 'title' ),
-            'post_content'   => Util::get_prop( $attachment, 'description' ),
-            'post_excerpt'   => Util::get_prop( $attachment, 'caption' ),
-            'post_status'    => 'inherit',
-        );
-
-        // Insert attachment to the database.
-        $attachment_id = wp_insert_attachment( $post_info, $file_path, $post_id, true );
-
-        // Generate post thumbnail attachment meta data.
-        $attachment_data = wp_generate_attachment_metadata( $attachment_id, $file_path );
-
-        // Assign metadata to an attachment.
-        wp_update_attachment_metadata( $attachment_id, $attachment_data );
-
-        return $attachment_id;
-    }
-
-    /**
-     * If exif_read_data() fails, remove exif data from the image file
-     * to prevent errors in WordPress core.
-     *
-     * @param string $local_image       Local url for an image.
-     * @return void No return.
-     */
-    protected function strip_unsupported_exif_data( $local_image ) {
-
-        // Variable for exif data errors in PHP
-        $php_exif_data_error_exists = false;
-
-        // Check for PHP exif_read_data function errors!
-        try {
-            exif_read_data( $local_image );
-        } catch ( \Exception $e ) {
-            $php_exif_data_error_exists = true;
-        }
-
-        // If image magic is installed and exif_data_error exists
-        if ( class_exists( 'Imagick' ) && $php_exif_data_error_exists === true ) {
-
-            // Run image through image magick
-            try {
-                $imagick_object = new \Imagick( realpath( $local_image ) );
-
-                // Strip off all exif data to prevent PHP 5.6 and PHP 7.0 exif errors!
-                $imagick_object->stripImage();
-
-                // Write manipulated file to the tmp folder
-                $imagick_file = $imagick_object->writeImage( $local_image );
-            } catch ( \Exception $e ) {
-                // Unable to edit the image exif data.
-            }
-        }
-    }
-
-    /**
-     * Saves the metadata of the post.
-     *
-     * @return void
-     */
-    protected function save_meta() {
-        if ( is_array( $this->meta ) ) {
-            foreach ( $this->meta as $key => $value ) {
-
-                // Check if post has a attachment thumbnail
-                if ( $key === '_thumbnail_id' ) {
-                    // First check if attachments have been saved.
-                    // If not, set an error and skip thumbnail setting.
-                    if ( ! $this->is_saved( 'attachments' ) ) {
-                        // @codingStandardsIgnoreStart
-                        $err = __( 'Attachments must be saved before saving the thumbnail id for a post. Discarding saving meta for the key "_thumbnail_id".', 'oopi' );
-                        // @codingStandardsIgnoreEnd
-                        $this->set_error( 'meta', $key, $err );
-                        continue;
-                    }
-
-                    // If attachment id exists
-                    $attachment_post_id = $this->attachment_ids[ $value ] ?? '';
-
-                    // If not empty set _thumbnail_id
-                    if ( ! empty( $attachment_post_id ) ) {
-                        $value = $attachment_post_id;
-                    }
-                    // Set error: attachment did not exist.
-                    else {
-                        // @codingStandardsIgnoreStart
-                        $this->set_error( 'meta', $key, __( 'Can not save the thumbnail data. The attachment was not found.', 'oopi' ) );
-                        // @codingStandardsIgnoreEnd
-                        unset( $this->meta[ $key ] );
-                        continue;
-                    }
-                }
-
-                // Update post meta
-                update_post_meta( $this->post_id, $key, $value );
-            }
-        }
-
-        // Saving meta is done.
-        $this->set_save_state( 'meta' );
-    }
-
-    /**
-     * Sets the terms of a post and create taxonomy terms
-     * if they do not exist yet.
-     */
-    protected function save_taxonomies() {
-        if ( is_array( $this->taxonomies ) ) {
-            $term_ids_by_tax = [];
-            foreach ( $this->taxonomies as $term ) {
-                $taxonomy = $term->get_taxonomy();
-                $wp_term  = $term->get_term();
-
-                // If the term does not exist, create it.
-                if ( ! $wp_term ) {
-                    $result = Storage::create_new_term( $term, $this );
-                    if ( is_wp_error( $result ) ) {
-                        // Skip erroneous terms.
-                        continue;
-                    }
-                }
-                $wp_term = $term->get_term();
-
-                // Ensure identification. Data is only set once.
-                $term->identify();
-
-                // Handle localization.
-                if ( $term->get_language() !== null ) {
-                    Localization\Controller::set_term_language( $term, $this );
-                }
-
-                // Add term id.
-                if ( isset( $term_ids_by_tax[ $taxonomy ] ) ) {
-                    $term_ids_by_tax[ $taxonomy ][] = $wp_term->term_id;
-                }
-                else {
-                    $term_ids_by_tax[ $taxonomy ] = [ $wp_term->term_id ];
-                }
-            }
-            foreach ( $term_ids_by_tax as $taxonomy => $terms ) {
-                // Set terms for the post object.
-                wp_set_object_terms( $this->post_id, $terms, $taxonomy );
-            }
-        }
-
-        // Done saving.
-        $this->set_save_state( 'taxonomies' );
-    }
-
-    /**
-     * Saves the acf data of the post.
-     */
-    protected function save_acf() {
-
-        // Bail if ACF is not activated.
-        if ( ! function_exists( 'get_field' ) ) {
-            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields is not active! Please install and activate the plugin to save ACF data.', 'oopi' ) ); // phpcs:ignore
-            return;
-        }
-
-        if ( ! is_array( $this->acf ) ) {
-            $this->set_error( 'acf', $this->acf, __( 'Advanced Custom Fields data is set but it is not an array.', 'oopi' ) ); // phpcs:ignore
-            return;
-        }
-
-        foreach ( $this->acf as $acf_row ) {
-            // The key must be set.
-            if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
-                continue;
-            }
-
-            $type  = Util::get_prop( $acf_row, 'type', 'default' );
-            $key   = Util::get_prop( $acf_row, 'key', '' );
-            $value = Util::get_prop( $acf_row, 'value', '' );
-
-            switch ( $type ) {
-                case 'taxonomy':
-                    $terms = [];
-                    foreach ( $value as $term ) {
-                        if ( ! $term instanceof Term ) {
-                            $term = ( new Term( Util::get_prop( 'oopi_id' ) ) )->set_data( $term );
-                        }
-
-                        // If the term does not exist, create it.
-                        if ( ! $term->get_term() ) {
-                            $result = Storage::create_new_term( $term, $this );
-                            if ( is_wp_error( $result ) ) {
-                                // Skip erroneous terms.
-                                continue;
-                            }
-                        }
-
-                        // Ensure identification. Data is only set once.
-                        $term->identify();
-
-                        // Handle localization.
-                        if ( $term->get_language() !== null ) {
-                            Localization\Controller::set_term_language( $term, $this );
-                        }
-
-                        $terms[] = $term->get_term_id();
-                    }
-                    if ( count( $terms ) ) {
-                        update_field( $key, $terms, $this->post_id );
-                    }
-                    break;
-
-                case 'image':
-                    // Check if image exists.
-                    $attachment_post_id = $this->attachment_ids[ $value ];
-                    if ( ! empty( $attachment_post_id ) ) {
-                        update_field( $key, $attachment_post_id, $this->post_id );
-                    }
-                    else {
-                        $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
-                        $this->set_error( 'acf', 'image_field', $err );
-                    }
-                    break;
-
-                // @todo Test which field types require no extra logic.
-                // Currently tested: 'select'
-                default:
-                    update_field( $key, $value, $this->post_id );
-                    break;
-            }
-        }
-
-        // Done saving.
-        $this->set_save_state( 'acf' );
-    }
-
-    /**
-     * Adds postmeta rows for matching a WP post with an external source.
-     */
-    protected function identify() {
-        $id_prefix = Settings::get( 'id_prefix' );
-
-        // Remove the trailing '_'.
-        $identificator = rtrim( $id_prefix, '_' );
-
-        // Set the queryable identificator.
-        // Example: meta_key = 'oopi_id', meta_value = 12345
-        update_post_meta( $this->post_id, $identificator, $this->oopi_id );
-
-        // Set the indexed indentificator.
-        // Example: meta_key = 'oopi_id_12345', meta_value = 12345
-        update_post_meta( $this->post_id, $id_prefix . $this->oopi_id, $this->oopi_id );
+    public function import() : ?int {
+        return $this->importer->import();
     }
 
     /**
      * Checks whether the current post is valid.
-     *
-     * @throws PostException If the post data is not valid, an PostException error is thrown.
      */
-    protected function validate() {
-        if ( ! empty( $this->errors ) ) {
-            return false;
-        }
-        else {
-            return true;
-        }
+    public function validate() : bool {
+        return empty( $this->errors );
     }
-
-    /**
-     * This function creates a filter for the 'wp_insert_post_data' hook
-     * which is enabled only while importing post data with Oopi.
-     * Use this to customize the imported data before any database actions.
-     *
-     * @param object $post_data The post data to be saved.
-     *
-     * @return mixed
-     */
-    public function pre_insert_post( $post_data ) {
-        // If this instance has time values, set them here and override WP automation.
-        if ( isset( $this->post->post_date ) &&
-             $this->post->post_date !== '0000-00-00 00:00:00'
-        ) {
-            $post_data['post_date']         = $this->post->post_date;
-            $post_data['post_date_gmt']     = \get_gmt_from_date( $this->post->post_date );
-        }
-        if ( isset( $this->post->post_modified ) &&
-             $this->post->post_modified !== '0000-00-00 00:00:00'
-        ) {
-            $post_data['post_modified']     = $this->post->post_modified;
-            $post_data['post_modified_gmt'] = \get_gmt_from_date( $this->post->post_modified );
-        }
-
-        return apply_filters( 'oopi_pre_insert_post', $post_data, $this->oopi_id );
-    }
-
-    /**
-     * This function creates a filter for the 'wp_insert_post_data' action hook.
-     * Use this to customize the imported data after 'wp_insert_post()' is run.
-     *
-     * @param array $postarr Post data array.
-     * @return array
-     */
-    public function after_insert_post( $postarr ) {
-        return apply_filters( 'oopi_after_insert_post', $postarr, $this->oopi_id );
-    }
-
-    /**
-     * Restores a post's state back to the last successful import.
-     *
-     * @return boolean Did we roll back or not?
-     */
-    protected function rollback() {
-        // Set the rollback mode.
-        $this->rollback_mode = true;
-
-        $last_import = Log::get_last_successful_import( $this->post_id );
-
-        if ( $last_import &&
-             Settings::get( 'rollback_disable' ) !== true ) {
-            // First delete all imported data.
-            $this->delete_data();
-
-            // Save the previous import again.
-            $data = $last_import->get_data();
-            $this->set_data( $data );
-            $this->save();
-
-            $this->rollback_mode = false;
-
-            return true;
-        }
-        else {
-            // Set post status to 'draft' to hide posts containing errors.
-            $update_status = [
-                'ID'          => $this->post_id,
-                'post_status' => 'draft',
-            ];
-
-            // Update the status into the database
-            wp_update_post( $update_status );
-
-            return false;
-        }
-    }
-
 }

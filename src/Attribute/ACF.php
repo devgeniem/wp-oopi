@@ -5,7 +5,7 @@
 
 namespace Geniem\Oopi\Attribute;
 
-use Geniem\Oopi\Interfaces\ErrorHandlerInterface;
+use Geniem\Oopi\Interfaces\ErrorHandler;
 
 /**
  * Class ACF
@@ -35,7 +35,7 @@ class ACF extends Meta {
     /**
      * @inheritDoc
      */
-    public function save( ErrorHandlerInterface $error_handler ) {
+    public function save( ErrorHandler $error_handler ) {
         // TODO: Implement save() method.
     }
 }

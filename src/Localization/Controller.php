@@ -6,7 +6,7 @@
 namespace Geniem\Oopi\Localization;
 
 // Classes
-use Geniem\Oopi\Post as Post;
+use Geniem\Oopi\Importable\Post;
 use Geniem\Oopi\Term;
 use Geniem\Oopi\Util;
 

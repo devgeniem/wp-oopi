@@ -5,16 +5,16 @@
 
 namespace Geniem\Oopi\Attribute;
 
-use Geniem\Oopi\Interfaces\ErrorHandlerInterface;
+use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Interfaces\ImportableAttribute;
+use Geniem\Oopi\Interfaces\Attribute;
 
 /**
  * Class Language
  *
  * @package Geniem\Oopi\Attribute
  */
-abstract class Language implements ImportableAttribute {
+abstract class Language implements Attribute {
 
     /**
      * The id of the parent object in the main language.
@@ -42,7 +42,7 @@ abstract class Language implements ImportableAttribute {
     /**
      * @inheritDoc
      */
-    public function save( ErrorHandlerInterface $error_handler ) {
+    public function save( ErrorHandler $error_handler ) {
         // TODO: Implement save() method.
     }
 

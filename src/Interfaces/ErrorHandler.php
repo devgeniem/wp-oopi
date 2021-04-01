@@ -2,10 +2,17 @@
 
 namespace Geniem\Oopi\Interfaces;
 
-interface ErrorHandlerInterface {
+/**
+ * Interface ErrorHandler
+ *
+ * @property array $errors Holds the errors.
+ *
+ * @package Geniem\Oopi\Interfaces
+ */
+interface ErrorHandler {
 
     /**
-     * Set an error.
+     * Set a single error and store it in the class.
      *
      * @param string $scope The error scope.
      * @param mixed  $data  The data related to the error.

@@ -5,6 +5,8 @@
 
 namespace Geniem\Oopi;
 
+use Geniem\Oopi\Importable\Post;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

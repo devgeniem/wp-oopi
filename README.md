@@ -114,7 +114,7 @@ Run this function after setting the data for the importer object. This function 
 
 ##### Parameters
 
-- `$force_save` *(boolean) (Optional)* Set this to `true` skip validation and force saving. You can create custom validations through multiple hooks or by manually inspecting error with by getting them with the `get_errors()` function. Defaults to `false`.
+- `$force_save` *(boolean) (Optional)* Set this to `true` to skip validation and force saving. You can create custom validations through multiple hooks or by manually inspecting error with by getting them with the `get_errors()` function. Defaults to `false`.
 
 ## Plugin settings
 

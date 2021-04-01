@@ -1,31 +1,35 @@
 <?php
+/**
+ * Attributes are meta data for importables.
+ */
 
 namespace Geniem\Oopi\Interfaces;
 
 /**
  * Interface ImportableAttribute
  *
- * @property Importable $importable All attributes must have a parent importable.
+ * @property Importable   $importable All attributes must have a parent importable.
  *                                  For example a post meta attribute has an importable post object.
- * @property ErrorHandlerInterface $error_handler All attributes must have an error handler
+ * @property ErrorHandler $error_handler All attributes must have an error handler
  *                                       passed from the parent importable.
- *
  * @package Geniem\Oopi\Interfaces
  */
-interface ImportableAttribute {
+interface Attribute {
 
     /**
      * Setter for the parent object.
      *
      * @param Importable $importable The parent importable.
+     *
+     * @return self Return self for operation chaining.
      */
-    public function set_importable( Importable $importable );
+    public function set_importable( Importable $importable ) : self;
 
     /**
      * Saves the attribute for the importable.
      *
-     * @param ErrorHandlerInterface $error_handler The parent's error handler.
+     * @return int|string It is encouraged that the id of the saved attribute is returned.
      */
-    public function save( ErrorHandlerInterface $error_handler );
+    public function save();
 
 }
