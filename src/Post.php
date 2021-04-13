@@ -408,7 +408,7 @@ class Post {
             }
             else {
                 // The parent is a WP post id.
-                if ( \get_post( $parent_id ) === null ) {
+                if ( \get_post( $post_obj->post_parent ) === null ) {
                     $err = __( 'Error in the "post_parent" column. The parent id did not match any post.', 'oopi' ); // phpcs:ignore
                     $this->set_error( $err_scope, 'menu_order', $err );
                 }
@@ -1223,7 +1223,7 @@ class Post {
                         if ( $term->get_language() !== null ) {
                             Localization\Controller::set_term_language( $term, $this );
                         }
-                        
+
                         $terms[] = $term->get_term_id();
                     }
                     if ( count( $terms ) ) {
