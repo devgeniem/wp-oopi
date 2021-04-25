@@ -12,13 +12,19 @@ namespace Geniem\Oopi\Interfaces;
 interface ErrorHandler {
 
     /**
+     * ErrorHandler constructor.
+     *
+     * @param string $scope The error scope, for example 'post'.
+     */
+    public function __construct( string $scope );
+
+    /**
      * Set a single error and store it in the class.
      *
-     * @param string $scope The error scope.
-     * @param mixed  $data  The data related to the error.
-     * @param string $error The error message.
+     * @param string     $error The error message.
+     * @param mixed|null $data  Optional data related to the error.
      */
-    public function set_error( $scope = '', $data = '', $error = '' );
+    public function set_error( string $error = '', $data = null );
 
     /**
      * Get all errors.

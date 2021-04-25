@@ -5,45 +5,80 @@
 
 namespace Geniem\Oopi\Attribute;
 
+use Geniem\Oopi\Exception\AttributeSaveException;
+use Geniem\Oopi\Exception\LanguageException;
+use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Attribute;
+use Geniem\Oopi\Localization\LanguageUtil;
 
 /**
  * Class Language
  *
  * @package Geniem\Oopi\Attribute
  */
-abstract class Language implements Attribute {
+class Language implements Attribute {
+
+    /**
+     * The importable the attribute belongs to.
+     *
+     * @var Importable
+     */
+    protected Importable $importable;
 
     /**
      * The id of the parent object in the main language.
      *
-     * @var string
+     * @var string|null Should be null if this is in the default language.
      */
-    protected $main_oopi_id;
+    protected ?string $main_oopi_id;
 
     /**
      * The locale.
      *
      * @var string
      */
-    protected $locale;
+    protected string $locale;
+
+    /**
+     * The attribute saver.
+     *
+     * @var AttributeSaver|null
+     */
+    protected ?AttributeSaver $saver;
+
+    /**
+     * Language constructor.
+     *
+     * @param Importable          $importable    The importable the attribute belongs to.
+     * @param string              $locale        The locale code.
+     * @param string|null         $main_oopi_id  If this is not in the default language, a main object id should be set.
+     * @param AttributeSaver|null $saver         An optional saver. If none is set, the default saver is used.
+     */
+    public function __construct(
+        Importable $importable,
+        string $locale,
+        ?string $main_oopi_id = null,
+        ?AttributeSaver $saver = null
+    ) {
+        $this->importable   = $importable;
+        $this->locale       = $locale;
+        $this->main_oopi_id = $main_oopi_id;
+        $this->saver        = $saver ?? LanguageUtil::get_default_language_saver( $importable );
+    }
 
     /**
      * Setter for the parent object.
      *
      * @param Importable $importable The parent importable.
+     *
+     * @return self Return self for operation chaining.
      */
-    public function set_importable( Importable $importable ) {
+    public function set_importable( Importable $importable ) : self {
         $this->importable = $importable;
-    }
 
-    /**
-     * @inheritDoc
-     */
-    public function save( ErrorHandler $error_handler ) {
-        // TODO: Implement save() method.
+        return $this;
     }
 
     /**
@@ -58,11 +93,11 @@ abstract class Language implements Attribute {
     /**
      * Set the locale.
      *
-     * @param string|null $locale The locale.
+     * @param string $locale The locale.
      *
      * @return Language Return self to enable chaining.
      */
-    public function set_locale( ?string $locale ) : Language {
+    public function set_locale( string $locale ) : Language {
         $this->locale = $locale;
 
         return $this;
@@ -84,10 +119,34 @@ abstract class Language implements Attribute {
      *
      * @return Language Return self to enable chaining.
      */
-    public function set_main_oopi_id( ?string $main_oopi_id ) : Language {
+    public function set_main_oopi_id( string $main_oopi_id ) : Language {
         $this->main_oopi_id = $main_oopi_id;
 
         return $this;
     }
 
+    /**
+     * Validate the language data.
+     */
+    public function validate() {}
+
+    /**
+     * Saves the attribute with the saver if it is set.
+     *
+     * @return int|string|void|null
+     * @throws LanguageException Thrown if saving fails.
+     */
+    public function save() {
+        if ( ! empty( $this->saver ) ) {
+            try {
+                return $this->saver->save( $this->importable, $this );
+            }
+            catch ( AttributeSaveException $e ) {
+                // Cast the exception.
+                throw new LanguageException( $e->getMessage() );
+            }
+        }
+
+        throw new LanguageException( 'Unable to save the language. No saver defined for: ' . __CLASS__ );
+    }
 }

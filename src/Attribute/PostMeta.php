@@ -6,8 +6,8 @@
 namespace Geniem\Oopi\Attribute;
 
 use Geniem\Oopi\Attribute\Saver\PostMetaSaver;
-use Geniem\Oopi\Interfaces\ErrorHandler;
-use Geniem\Oopi\Importable\Post;
+use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 
@@ -19,34 +19,40 @@ use Geniem\Oopi\Interfaces\AttributeSaver;
 class PostMeta extends Meta {
 
     /**
-     * The parent post object.
-     *
-     * @var Post
+     * Error scope.
      */
-    protected $importable;
+    const ESCOPE = 'post_meta';
+
+    /**
+     * The parent importable that is the post object.
+     *
+     * @var Importable
+     */
+    protected Importable $importable;
 
     /**
      * PostMeta constructor.
      *
-     * @param Importable          $importable    The importable.
-     * @param string              $key           The meta key.
-     * @param mixed               $value         The meta value.
-     * @param AttributeSaver|null $saver         An optional saver. The PostMetaSaver by default.
-     * @param ErrorHandler|null   $error_handler An optional error handler. Empty by default.
+     * @param Importable          $importable The importable.
+     * @param string              $key        The meta key.
+     * @param mixed               $value      The meta value.
+     * @param AttributeSaver|null $saver      An optional saver. The PostMetaSaver by default.
+     *
+     * @throws TypeException Throws an error if the importable is not the correct type.
      */
     public function __construct(
         Importable $importable,
         string $key,
         $value = null,
-        ?AttributeSaver $saver = null,
-        ?ErrorHandler $error_handler = null
+        ?AttributeSaver $saver = null
     ) {
-        // Use the post meta saver by default.
-        if ( empty( $saver ) ) {
-            $saver = new PostMetaSaver();
+        if ( ! $importable instanceof PostImportable ) {
+            throw new TypeException( 'PostMeta requires an importable of type: ' . PostImportable::class );
         }
 
-        parent::__construct( $importable, $key, $value, $saver, $error_handler );
-    }
+        // Set default handlers if not passed.
+        $this->saver = $saver ?? new PostMetaSaver();
 
+        parent::__construct( $importable, $key, $value, $saver );
+    }
 }

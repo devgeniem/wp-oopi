@@ -20,7 +20,7 @@ trait ImporterAccessing {
      *
      * @var Importer
      */
-    protected $importer;
+    protected Importer $importer;
 
     /**
      * Setter for a local importer.

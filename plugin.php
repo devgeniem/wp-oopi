@@ -15,13 +15,13 @@
 namespace Geniem\Oopi;
 
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Importable\Post;
-use Geniem\Oopi\Importable\Term;
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Importer\PostImporter;
 use Geniem\Oopi\Importer\TermImporter;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
-use Geniem\Oopi\Localization\Controller as LocalizationController;
+use Geniem\Oopi\Localization\LanguageUtil;
 use ReflectionClass;
 use ReflectionException;
 
@@ -86,7 +86,7 @@ class Plugin {
 
         // Initialize plugin controllers after plugins are loaded.
         add_action( 'wp_loaded', function() {
-            LocalizationController::init();
+            LanguageUtil::init();
         } );
 
         // Load the plugin textdomain.
@@ -98,8 +98,8 @@ class Plugin {
      */
     protected static function set_initial_import_handlers() {
         static::$importables = [
-            Post::class => PostImporter::class,
-            Term::class => TermImporter::class,
+            PostImportable::class => PostImporter::class,
+            TermImportable::class => TermImporter::class,
         ];
     }
 

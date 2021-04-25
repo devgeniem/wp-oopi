@@ -5,22 +5,38 @@
 
 namespace Geniem\Oopi\Importable;
 
+use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Importer\TermImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Language;
+use Geniem\Oopi\Interfaces\Importer;
+use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Storage;
+use Geniem\Oopi\Traits\ImportableLanguage;
 use Geniem\Oopi\Traits\ImporterAccessing;
+use Geniem\Oopi\Traits\ImportStatus;
 use Geniem\Oopi\Traits\PropertyBinding;
 use WP_Term;
 
 /**
- * Class Term
+ * Class TermImportable
  *
  * Handles term importing.
  *
  * @package Geniem\Oopi
  */
-class Term implements Importable {
+class TermImportable implements Importable {
+
+    /**
+     * The error scope.
+     */
+    const ESCOPE = 'term';
+
+    /**
+     * Use the language attribute.
+     */
+    use ImportableLanguage;
 
     /**
      * Add the set_data() binding method.
@@ -33,71 +49,90 @@ class Term implements Importable {
     use ImporterAccessing;
 
     /**
+     * Feature for checking if the importable is imported already.
+     */
+    use ImportStatus;
+
+    /**
      * A unique id for external identification.
      *
      * @var string
      */
-    protected $oopi_id;
+    protected string $oopi_id;
 
     /**
      * If this is an existing term, the term is loaded here.
      *
-     * @var WP_Term
+     * @var WP_Term|null
      */
-    protected $term;
+    protected ?WP_Term $term;
 
     /**
      * The term slug.
      *
      * @var string
      */
-    protected $slug;
+    protected string $slug;
 
     /**
      * The display name.
      *
      * @var string
      */
-    protected $name;
+    protected string $name;
 
     /**
      * The WP taxonomy slug.
      *
      * @var string
      */
-    protected $taxonomy;
+    protected string $taxonomy;
 
     /**
      * The term description
      *
-     * @var string
+     * @var string|null
      */
-    protected $description = '';
+    protected ?string $description = '';
 
     /**
      * The optional language data
      *
      * @var Language
      */
-    protected $language;
+    protected Language $language;
 
     /**
      * An Oopi id of the parent term.
      *
-     * @var string
+     * @var string|null
      */
-    protected $parent;
+    protected ?string $parent;
+
+    /**
+     * The error handler.
+     *
+     * @var ErrorHandler
+     */
+    private ErrorHandler $error_handler;
 
     /**
      * Term constructor.
      *
-     * @param string       $oopi_id A term must always contain an external id.
-     * @param WP_Term|null $term If a WP Term is set, the imported data
-     *                           will override data in the term.
+     * @param string            $oopi_id       A unique id for the importable.
+     * @param Importer|null     $importer      The importer.
+     * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( $oopi_id, ?WP_Term $term = null ) {
-        $this->oopi_id = $oopi_id;
-        $this->term    = $term;
+    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null ) {
+        $this->oopi_id       = $oopi_id;
+        $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
+
+        try {
+            $this->importer = $importer ?? new TermImporter( $this, $error_handler );
+        }
+        catch ( TypeException $e ) {
+            $this->error_handler->set_error( 'Unable to create the term importable. Error: ' . $e->getMessage() );
+        }
     }
 
     /**
@@ -110,21 +145,12 @@ class Term implements Importable {
     }
 
     /**
-     * Get the WP term id.
-     *
-     * @return int
-     */
-    public function get_term_id() : int {
-        return $this->term->term_id ?? 0;
-    }
-
-    /**
      * Get the term id.
      *
      * @return int
      */
     public function get_wp_id(): ?int {
-        return $this->get_term_id();
+        return $this->term->term_id ?? 0;
     }
 
     /**
@@ -160,9 +186,9 @@ class Term implements Importable {
      *
      * @param WP_Term|null $term A WP term object.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_term( ?WP_Term $term ) : Term {
+    public function set_term( ?WP_Term $term ) : TermImportable {
         $this->term = $term;
 
         // Set properties with WP term data.
@@ -186,10 +212,9 @@ class Term implements Importable {
      *
      * @param string $slug The slug.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_slug( ?string $slug ) : Term {
-
+    public function set_slug( string $slug ) : TermImportable {
         $this->slug = $slug;
 
         return $this;
@@ -210,10 +235,9 @@ class Term implements Importable {
      *
      * @param string $name The name.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_name( ?string $name ) : Term {
-
+    public function set_name( string $name ) : TermImportable {
         $this->name = $name;
 
         return $this;
@@ -234,10 +258,9 @@ class Term implements Importable {
      *
      * @param string $taxonomy The WP taxonomy slug.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_taxonomy( ?string $taxonomy ) : Term {
-
+    public function set_taxonomy( string $taxonomy ) : TermImportable {
         $this->taxonomy = $taxonomy;
 
         return $this;
@@ -255,11 +278,11 @@ class Term implements Importable {
     /**
      * Set the description.
      *
-     * @param string $description The description.
+     * @param string|null $description The description.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_description( ?string $description ): Term {
+    public function set_description( ?string $description = '' ): TermImportable {
         $this->description = $description;
 
         return $this;
@@ -272,19 +295,6 @@ class Term implements Importable {
      */
     public function get_language() : ?Language {
         return $this->language;
-    }
-
-    /**
-     * Set the language.
-     *
-     * @param Language $language The language.
-     *
-     * @return Term Return self to enable chaining.
-     */
-    public function set_language( ?Language $language ) : Term {
-        $this->language = $language;
-
-        return $this;
     }
 
     /**
@@ -301,23 +311,51 @@ class Term implements Importable {
      *
      * @param string|null $parent The parent id.
      *
-     * @return Term Return self to enable chaining.
+     * @return TermImportable Return self to enable chaining.
      */
-    public function set_parent( ?string $parent ) : Term {
+    public function set_parent( ?string $parent = null ) : TermImportable {
         $this->parent = $parent;
 
         return $this;
     }
 
     /**
-     * Validate the term object data.
+     * Getter for the error handler.
      *
-     * @param ErrorHandler $error_hander The error handler to store all validation errors.
+     * @return ErrorHandler
+     */
+    public function get_error_handler(): ErrorHandler {
+        return $this->error_handler;
+    }
+
+    /**
+     * Validate a term importable.
      *
      * @return bool
      */
-    public function validate( ErrorHandler $error_hander ) : bool {
-        // TODO: Implement validate() method.
-        return true;
+    public function validate(): bool {
+        return empty( $this->error_handler->get_errors() );
+    }
+
+    public function import(): ?int {
+        if ( ! empty( $this->importer ) ) {
+            return $this->importer->import();
+        }
+
+        return null;
+    }
+
+    /**
+     * Saves the attribute with the saver if it is set.
+     *
+     * @return int|string|void|null
+     * @throws AttributeSaveException An error is thrown if the saving fails.
+     */
+    public function save() {
+        if ( ! empty( $this->saver ) ) {
+            return $this->saver->save( $this->importable, $this );
+        }
+
+        return null;
     }
 }

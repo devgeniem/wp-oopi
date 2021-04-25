@@ -5,6 +5,8 @@
 
 namespace Geniem\Oopi\Interfaces;
 
+use Geniem\Oopi\Exception\AttributeSaveException;
+
 /**
  * Interface Saver
  *
@@ -15,12 +17,13 @@ interface AttributeSaver {
     /**
      * Saves an object and returns the id of the saved attribute.
      *
-     * @param Importable        $importable    A save operation is always related to an importable.
-     * @param Attribute         $attribute     A save operation is always related to an attribute.
-     * @param ErrorHandler|null $error_handler An optional error handler.
+     * @param Importable $importable A save operation is always related to an importable.
+     * @param Attribute  $attribute  A save operation is always related to an attribute.
      *
-     * @return int|string
+     * @throws AttributeSaveException An error should be thrown for erroneous saves.
+     *
+     * @return mixed|null Return value is optional.
      */
-    public function save( Importable $importable, Attribute $attribute, ?ErrorHandler $error_handler = null );
+    public function save( Importable $importable, Attribute $attribute );
 
 }

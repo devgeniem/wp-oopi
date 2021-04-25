@@ -5,11 +5,13 @@
 
 namespace Geniem\Oopi\Attribute;
 
+use Geniem\Oopi\Exception\AttributeSaveException;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\OopiErrorHandler;
+use Geniem\Oopi\Util;
 
 /**
  * Class Meta
@@ -19,39 +21,32 @@ use Geniem\Oopi\OopiErrorHandler;
 abstract class Meta implements Attribute {
 
     /**
-     * The importable object.
-     *
-     * @var Importable
-     */
-    protected $importable;
-
-    /**
      * The meta key.
      *
      * @var string
      */
-    protected $key;
+    protected string $key;
 
     /**
      * The meta value.
      *
-     * @var string
+     * @var mixed
      */
     protected $value;
 
     /**
-     * The attribute saver.
+     * The importable object.
      *
-     * @var AttributeSaver
+     * @var Importable
      */
-    protected $saver;
+    protected Importable $importable;
 
     /**
-     * The error handler.
+     * The attribute saver.
      *
-     * @var ErrorHandler
+     * @var AttributeSaver|null
      */
-    protected $error_handler;
+    protected ?AttributeSaver $saver;
 
     /**
      * Setter for the parent object.
@@ -76,38 +71,12 @@ abstract class Meta implements Attribute {
     }
 
     /**
-     * Set the key.
-     *
-     * @param string $key The key.
-     *
-     * @return Meta Return self to enable chaining.
-     */
-    public function set_key( string $key ): Meta {
-        $this->key = $key;
-
-        return $this;
-    }
-
-    /**
      * Get the value.
      *
      * @return string
      */
     public function get_value(): string {
         return $this->value;
-    }
-
-    /**
-     * Set the value.
-     *
-     * @param mixed $value The value.
-     *
-     * @return Meta Return self to enable chaining.
-     */
-    public function set_value( $value ): Meta {
-        $this->value = $value;
-
-        return $this;
     }
 
     /**
@@ -119,32 +88,46 @@ abstract class Meta implements Attribute {
      * @param mixed               $value         The meta value.
      * @param AttributeSaver|null $saver         An optional saver. Empty by default.
      *                                           Pass a saver to make use of composition.
-     * @param ErrorHandler|null   $error_handler An optional error handler. OopiErrorHandler by default.
      */
     public function __construct(
         Importable $importable,
         string $key,
         $value = null,
-        ?AttributeSaver $saver = null,
-        ?ErrorHandler $error_handler = null
+        ?AttributeSaver $saver = null
     ) {
-        $this->importable    = $importable;
-        $this->key           = $key;
-        $this->value         = $value;
-        $this->saver         = $saver;
-        $this->error_handler = $error_handler ?: new OopiErrorHandler();
+        $this->importable = $importable;
+        $this->key        = $key;
+        $this->value      = $value;
+        $this->saver      = $saver;
     }
 
     /**
      * Saves the attribute with the saver if it is set.
      *
      * @return int|string|void|null
+     * @throws AttributeSaveException An error is thrown if the saving fails.
      */
     public function save() {
-        if ( ! empty( $save ) ) {
-            return $this->saver->save( $this->importable, $this, $this->error_handler );
+        if ( ! empty( $this->saver ) ) {
+            return $this->saver->save( $this->importable, $this );
         }
 
         return null;
+    }
+
+    /**
+     * Factory method for creating the object from raw data.
+     *
+     * @param Importable   $importable The importable object.
+     * @param array|object $data       The field data.
+     *
+     * @return Meta
+     */
+    public static function factory( Importable $importable, $data ) : Meta {
+        $key   = Util::get_prop( $data, 'key' );
+        $value = Util::get_prop( $data, 'value' );
+        $saver = Util::get_prop( $data, 'saver', null );
+
+        return new static( $importable, $key, $value, $saver );
     }
 }

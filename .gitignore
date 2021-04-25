@@ -3,3 +3,6 @@
 
 # Composer vendor directory
 vendor/
+
+# Ignore editor configs.
+.idea

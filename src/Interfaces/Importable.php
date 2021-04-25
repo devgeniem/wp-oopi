@@ -20,10 +20,10 @@ interface Importable {
      * All importables should be initialized with an OOPI id.
      *
      * @param string            $oopi_id       A unique id for the importable.
-     * @param Importer|null     $importer      Optionally, an importer can be set during instantiation.
+     * @param Importer|null     $importer      The importer.
      * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler );
+    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null );
 
     /**
      * Setter for data.
@@ -54,26 +54,31 @@ interface Importable {
     public function validate() : bool;
 
     /**
-     * Set an instance specific non-global importer.
-     *
-     * @param Importer $importer An importer instance. Overrides the global importer.
-     *
-     * @return mixed
-     */
-    public function set_importer( Importer $importer );
-
-    /**
-     * Getter for the import handler.
+     * Getter for the importer.
      *
      * @return Importer
      */
     public function get_importer() : Importer;
 
     /**
-     * An importable can import itself. We recommend though,
-     * composition is used and the instance is provided with an importer.
+     * Getter for the error handler.
      *
-     * @return int|null On success, the WP item id should be returned, null on failure.
+     * @return ErrorHandler
+     */
+    public function get_error_handler() : ErrorHandler;
+
+    /**
+     * Check if the importable is already imported.
+     *
+     * @return bool
+     */
+    public function is_imported() : bool;
+
+    /**
+     * Import the importable with the attached importer.
+     *
+     * @return int|null
      */
     public function import() : ?int;
+
 }

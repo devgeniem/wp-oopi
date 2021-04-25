@@ -5,50 +5,47 @@
 
 namespace Geniem\Oopi\Importer;
 
-use Geniem\Oopi\Attribute\PostMeta;
+use Geniem\Oopi\Attribute\Meta;
+use Geniem\Oopi\Exception\AttributeSaveException;
+use Geniem\Oopi\Exception\LanguageException;
 use Geniem\Oopi\Exception\PostException as PostException;
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Importable\Post;
-use Geniem\Oopi\Importable\Term;
-use Geniem\Oopi\Interfaces\Attribute;
+use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Localization\Controller;
+use Geniem\Oopi\Interfaces\Importer;
 use Geniem\Oopi\Localization\Polylang as Polylang;
 use Geniem\Oopi\Log;
 use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Settings;
 use Geniem\Oopi\Storage;
 use Geniem\Oopi\Util;
-use mysql_xdevapi\Exception;
 
 /**
  * Class PostImportHandler
  *
  * @package Geniem\Oopi\Handler
  */
-class PostImporter extends BaseImporter {
+class PostImporter implements Importer {
 
     /**
-     * The importable post.
-     *
-     * @var Post
+     * Error scope.
      */
-    protected $importable;
+    const ESCOPE = 'post';
 
     /**
      * The error handler.
      *
      * @var ErrorHandler
      */
-    protected $error_handler;
+    protected ErrorHandler $error_handler;
 
     /**
      * An array holding save functions already run.
      *
      * @var array
      */
-    protected $save_state = [];
+    protected array $save_state = [];
 
     /**
      * This value is true when rolling back a previous import state.
@@ -56,7 +53,21 @@ class PostImporter extends BaseImporter {
      *
      * @var bool
      */
-    protected $rollback_mode = false;
+    protected bool $rollback_mode = false;
+
+    /**
+     * Set this to true to skip validation and force saving.
+     *
+     * @var bool
+     */
+    protected bool $force_save = false;
+
+    /**
+     * Holds the importable.
+     *
+     * @var PostImportable
+     */
+    protected PostImportable $importable;
 
     /**
      * Get all save functions that have been run.
@@ -87,34 +98,49 @@ class PostImporter extends BaseImporter {
     }
 
     /**
-     * ImportableAccessing constructor.
+     * Get the force_save.
      *
-     * @param Importable        $importable    The importable object.
-     * @param ErrorHandler|null $error_handler If no error handler is set, use the default one.
-     *
-     * @throws TypeException Exception is thrown if the passed importable is not a post importable.
+     * @return bool
      */
-    public function __construct( Importable $importable, ?ErrorHandler $error_handler = null ) {
-        if ( ! $importable instanceof Post ) {
-            throw new TypeException( 'The importable passed for post importer must of type: ' . Post::class );
-        }
+    public function is_force_save() : bool {
+        return $this->force_save;
+    }
 
-        if ( empty( $error_handler ) ) {
-            $this->error_handler = new OopiErrorHandler();
-        }
+    /**
+     * Set the force_save.
+     *
+     * @param bool $force_save The force_save.
+     *
+     * @return self Return self to enable chaining.
+     */
+    public function set_force_save( bool $force_save ) : self {
+        $this->force_save = $force_save;
 
-        parent::__construct( $importable );
+        return $this;
     }
 
     /**
      * Import the post into WordPress.
      *
-     * @return int|null The WP post id on success, null on failure.
-     * @throws PostException Exception is thrown if the import process fails.
+     * @param Importable        $importable    The object to be imported.
+     * @param ErrorHandler|null $error_handler An optional error handler.
+     *
+     * @return int|null On success, the WP item id is returned, null on failure.
+     * @throws TypeException Thrown if the importable is not a post importable.
+     * @throws PostException Thrown if the post data is not valid.
      */
-    public function import() : ?int {
+    public function import( Importable $importable, ?ErrorHandler $error_handler = null ) : ?int {
+        if ( ! $importable instanceof PostImportable ) {
+            throw new TypeException( 'The importable passed for post importer must of type: ' . PostImportable::class );
+        }
+
+        // "Typecast" the importable.
+        $this->importable = $importable;
+
+        $this->error_handler = $error_handler ?? new OopiErrorHandler( self::ESCOPE );
+
         // If this is not forced or a rollback save, check for errors before the saving process.
-        if ( ! $this->importable->is_force_save() || ! $this->rollback_mode ) {
+        if ( ! $this->is_force_save() || ! $this->rollback_mode ) {
             $valid = $this->importable->validate();
             if ( ! $valid ) {
                 // Log this import.
@@ -170,23 +196,23 @@ class PostImporter extends BaseImporter {
         }
 
         // Save localization data.
-        if ( ! empty( $this->language ) ) {
-            Controller::save_language( $this->importable );
+        if ( ! empty( $this->importable->get_language() ) ) {
+            $this->save_language();
         }
 
         // Save attachments.
-        if ( ! empty( $this->attachments ) ) {
+        if ( ! empty( $this->importable->get_attachments() ) ) {
             $this->save_attachments();
         }
 
         // Save metadata.
-        if ( ! empty( $this->meta ) ) {
+        if ( ! empty( $this->importable->get_meta() ) ) {
             $this->save_meta();
         }
 
         // Save taxonomies.
-        if ( ! empty( $this->taxonomies ) ) {
-            $this->save_taxonomies();
+        if ( ! empty( $this->importable->get_terms() ) ) {
+            $this->save_terms();
         }
 
         // Save acf data.
@@ -195,8 +221,8 @@ class PostImporter extends BaseImporter {
         }
 
         // If this is not forced or a rollback save, check for errors after save process.
-        if ( ! $this->importable->is_force_save() || ! $this->rollback_mode ) {
-            $valid = $this->validate();
+        if ( ! $this->is_force_save() || ! $this->rollback_mode ) {
+            $valid = $this->importable->validate();
             if ( ! $valid ) {
                 // Log this import.
                 new Log( $this );
@@ -231,12 +257,16 @@ class PostImporter extends BaseImporter {
         // Hook for running functionalities after saving the post.
         do_action( 'oopi_after_post_save', $this );
 
+        $this->importable->is_imported();
+
         return $post_id;
     }
 
     /**
      * Saves the attachments of the post.
      * Currently supports images.
+     *
+     * TODO: Refactor and move logic to the attachment importable and the attachment importer.
      *
      * @todo add support for other media formats too
      */
@@ -253,18 +283,19 @@ class PostImporter extends BaseImporter {
         }
 
         $attachment_prefix   = Settings::get( 'attachment_prefix' );
-        $attachment_language = Util::get_prop( $this->importable->get_i18n(), 'locale' );
+        $attachment_language = $this->importable->get_language();
 
         foreach ( $this->importable->get_attachments() as &$attachment ) {
 
             $attachment_id      = Util::get_prop( $attachment, 'id' );
             $attachment_src     = Util::get_prop( $attachment, 'src' );
             $attachment_post_id = Storage::get_attachment_post_id_by_attachment_id( $attachment_id );
+            $attachment_oopi_id = $attachment_prefix . $attachment_id;
 
             if ( empty( $attachment_src ) || empty( $attachment_id ) ) {
-                // @codingStandardsIgnoreStart
-                $this->error_handler->set_error( 'attachment', $attachment, __( 'The attachment object has missing parameters.', 'oopi' ) );
-                // @codingStandardsIgnoreEnd
+                $this->error_handler->set_error(
+                    'attachment', __( 'The attachment object has missing parameters.', 'oopi' ), $attachment
+                );
                 continue;
             }
 
@@ -290,7 +321,7 @@ class PostImporter extends BaseImporter {
                     // Depending on the attachment prefix this would look something like:
                     // meta_key             | meta_value
                     // oopi_attachment_{1234} | 1234
-                    update_post_meta( $attachment_post_id, $attachment_prefix . $attachment_id, $attachment_id );
+                    update_post_meta( $attachment_post_id, $attachment_oopi_id, $attachment_id );
                     // Set the generally queryable id.
                     // Depending on the attachment prefix this would look something like:
                     // meta_key       | meta_value
@@ -342,7 +373,9 @@ class PostImporter extends BaseImporter {
                 }
 
                 // Set the attachment post_id.
-                $this->importable->get_attachment_ids()[ $attachment_prefix . $attachment_id ] = Util::set_prop( $attachment, 'post_id', $attachment_post_id );
+                $wp_id = Util::set_prop( $attachment, 'post_id', $attachment_post_id );
+                // Store the ids to the importable.
+                $this->importable->map_attachment_id( $attachment_oopi_id, $wp_id );
             }
         }
 
@@ -501,7 +534,10 @@ class PostImporter extends BaseImporter {
                 $imagick_file = $imagick_object->writeImage( $local_image );
             }
             catch ( \Exception $e ) {
-                // Unable to edit the image exif data.
+                $this->error_handler->set_error(
+                    'Unable to write image. Error: ' . $e->getMessage(),
+                    $local_image
+                );
             }
         }
     }
@@ -514,15 +550,17 @@ class PostImporter extends BaseImporter {
     protected function save_meta() {
         $meta = $this->importable->get_meta();
         if ( is_array( $meta ) ) {
-            foreach ( $meta as $key => $value ) {
-                // Cast the raw data into an attribute object if it is not one already.
-                $post_meta = $value instanceof Attribute ?
-                    $value :
-                    // If attribute is in raw format, create a default post meta attribute with the default saver.
-                    new PostMeta( $this->importable, $key, $value, null, $this->error_handler );
-
-                $post_meta->save();
-            }
+            array_walk( $meta, function( Meta $attr ) {
+                try {
+                    $attr->save();
+                }
+                catch ( \Exception $e ) {
+                    $this->error_handler->set_error(
+                        'Unable to save meta attribute. Error: ' . $e->getMessage(),
+                        $attr
+                    );
+                }
+            } );
         }
 
         // Saving meta is done.
@@ -533,39 +571,19 @@ class PostImporter extends BaseImporter {
      * Sets the terms of a post and create taxonomy terms
      * if they do not exist yet.
      */
-    protected function save_taxonomies() {
-        $taxonomies = $this->importable->get_taxonomies();
-        if ( is_array( $taxonomies ) ) {
+    protected function save_terms() {
+        $terms = $this->importable->get_terms();
+        if ( is_array( $terms ) ) {
             $term_ids_by_tax = [];
-            foreach ( $taxonomies as $term ) {
-                $taxonomy = $term->get_taxonomy();
-                $wp_term  = $term->get_term();
-
-                // If the term does not exist, create it.
-                if ( ! $wp_term ) {
-                    $result = Storage::create_new_term( $term, $this->importable );
-                    if ( is_wp_error( $result ) ) {
-                        // Skip erroneous terms.
-                        continue;
-                    }
-                }
-                $wp_term = $term->get_term();
-
-                // Ensure identification. Data is only set once.
-                $term->identify();
-
-                // Handle localization.
-                if ( $term->get_language() !== null ) {
-                    Controller::set_term_language( $term, $this->importable );
+            foreach ( $terms as $term ) {
+                // Import term if it's not already imported.
+                if ( ! $term->is_imported() ) {
+                    $term_id = $term->get_importer()->import( $term, $this->error_handler );
                 }
 
-                // Add term id.
-                if ( isset( $term_ids_by_tax[ $taxonomy ] ) ) {
-                    $term_ids_by_tax[ $taxonomy ][] = $wp_term->term_id;
-                }
-                else {
-                    $term_ids_by_tax[ $taxonomy ] = [ $wp_term->term_id ];
-                }
+                // Map the ids into the relationship array.
+                $term_ids_by_tax[ $term->get_taxonomy() ]   = $term_ids_by_tax[ $term->get_taxonomy() ] ?? [];
+                $term_ids_by_tax[ $term->get_taxonomy() ][] = $term_id;
             }
             foreach ( $term_ids_by_tax as $taxonomy => $terms ) {
                 // Set terms for the post object.
@@ -581,88 +599,15 @@ class PostImporter extends BaseImporter {
      * Saves the acf data of the post.
      */
     protected function save_acf() {
-
-        // Bail if ACF is not activated.
-        if ( ! function_exists( 'get_field' ) ) {
-            $this->error_handler->set_error(
-                'acf',
-                $this->importable->get_acf(),
-                __(
-                    'Advanced Custom Fields is not active! Please install and activate the plugin to save ACF data.',
-                    'oopi'
-                )
-            );
-            return;
-        }
-
-        if ( ! is_array( $this->importable->get_acf() ) ) {
-            $this->error_handler->set_error(
-                'acf',
-                $this->importable->get_acf(),
-                __( 'Advanced Custom Fields data is set but it is not an array.', 'oopi' )
-            );
-            return;
-        }
-
-        foreach ( $this->importable->get_acf() as $acf_row ) {
-            // The key must be set.
-            if ( empty( Util::get_prop( $acf_row, 'key', '' ) ) ) {
-                continue;
+        foreach ( $this->importable->get_acf() as $field_attribute ) {
+            try {
+                $field_attribute->save();
             }
-
-            $type  = Util::get_prop( $acf_row, 'type', 'default' );
-            $key   = Util::get_prop( $acf_row, 'key', '' );
-            $value = Util::get_prop( $acf_row, 'value', '' );
-
-            switch ( $type ) {
-                case 'taxonomy':
-                    $terms = [];
-                    foreach ( $value as $term ) {
-                        if ( ! $term instanceof Term ) {
-                            $term = ( new Term( Util::get_prop( 'oopi_id' ) ) )->set_data( $term );
-                        }
-
-                        // If the term does not exist, create it.
-                        if ( ! $term->get_term() ) {
-                            $result = Storage::create_new_term( $term, $this->importable );
-                            if ( is_wp_error( $result ) ) {
-                                // Skip erroneous terms.
-                                continue;
-                            }
-                        }
-
-                        // Ensure identification. Data is only set once.
-                        $term->identify();
-
-                        // Handle localization.
-                        if ( $term->get_language() !== null ) {
-                            Controller::set_term_language( $term, $this->importable );
-                        }
-
-                        $terms[] = $term->get_term_id();
-                    }
-                    if ( count( $terms ) ) {
-                        update_field( $key, $terms, $this->importable->get_post_id() );
-                    }
-                    break;
-
-                case 'image':
-                    // Check if image exists.
-                    $attachment_post_id = $this->importable->get_attachment_ids()[ $value ] ?? null;
-                    if ( ! empty( $attachment_post_id ) ) {
-                        update_field( $key, $attachment_post_id, $this->importable->get_post_id() );
-                    }
-                    else {
-                        $err = __( 'Trying to set an image in an ACF field that does not exists.', 'oopi' );
-                        $this->error_handler->set_error( 'acf', 'image_field', $err );
-                    }
-                    break;
-
-                // @todo Test which field types require no extra logic.
-                // Currently tested: 'select'
-                default:
-                    update_field( $key, $value, $this->importable->get_post_id() );
-                    break;
+            catch ( AttributeSaveException $exception ) {
+                $this->error_handler->set_error(
+                    $exception->getMessage(),
+                    $exception
+                );
             }
         }
 
@@ -671,21 +616,32 @@ class PostImporter extends BaseImporter {
     }
 
     /**
-     * Adds postmeta rows for matching a WP post with an external source.
+     * Save language data.
+     */
+    protected function save_language() {
+        try {
+            $this->importable->get_language()->save();
+        }
+        catch ( LanguageException $e ) {
+            $this->error_handler->set_error( $e->getMessage(), $e );
+        }
+    }
+
+    /**
+     * Adds postmeta rows for matching a WP post with the OOPI id.
      */
     public function identify() {
-        $id_prefix = Settings::get( 'id_prefix' );
-
-        // Remove the trailing '_'.
-        $identificator = rtrim( $id_prefix, '_' );
+        $oopi_id = $this->importable->get_oopi_id();
 
         // Set the queryable identificator.
         // Example: meta_key = 'oopi_id', meta_value = 12345
-        update_post_meta( $this->importable->get_post_id(), $identificator, $this->oopi_id );
+        update_post_meta( $this->importable->get_post_id(), Storage::get_idenfiticator(), $oopi_id );
+
+        $index_key = Storage::format_query_key( $oopi_id );
 
         // Set the indexed indentificator.
         // Example: meta_key = 'oopi_id_12345', meta_value = 12345
-        update_post_meta( $this->importable->get_post_id(), $id_prefix . $this->oopi_id, $this->oopi_id );
+        update_post_meta( $this->importable->get_post_id(), $index_key, $oopi_id );
     }
 
     /**
@@ -699,13 +655,15 @@ class PostImporter extends BaseImporter {
      */
     public function pre_insert_post( $post_data ) {
         // If this instance has time values, set them here and override WP automation.
-        if ( isset( $this->importable->get_post()->post_date ) &&
+        if (
+            isset( $this->importable->get_post()->post_date ) &&
             $this->importable->get_post()->post_date !== '0000-00-00 00:00:00'
         ) {
             $post_data['post_date']     = $this->importable->get_post()->post_date;
             $post_data['post_date_gmt'] = \get_gmt_from_date( $this->importable->get_post()->post_date );
         }
-        if ( isset( $this->importable->get_post()->post_modified ) &&
+        if (
+            isset( $this->importable->get_post()->post_modified ) &&
             $this->importable->get_post()->post_modified !== '0000-00-00 00:00:00'
         ) {
             $post_data['post_modified']     = $this->importable->get_post()->post_modified;

@@ -5,7 +5,10 @@
 
 namespace Geniem\Oopi\Attribute\Saver;
 
+use Geniem\Oopi\Attribute\PostMeta;
+use Geniem\Oopi\Exception\AttributeSaveException;
 use Geniem\Oopi\Interfaces\Attribute;
+use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 
@@ -14,50 +17,36 @@ use Geniem\Oopi\Interfaces\Importable;
  *
  * @package Geniem\Oopi\Attribute\Saver
  */
-class PostMetaSaver implements \Geniem\Oopi\Interfaces\AttributeSaver {
+class PostMetaSaver implements AttributeSaver {
+
+    /**
+     * Error scope.
+     */
+    const ESCOPE = 'post_meta';
 
     /**
      * The save method implementation for post meta attributes.
      *
-     * @param Importable        $importable    The post importable.
-     * @param Attribute         $attribute     The post meta attribute.
-     * @param ErrorHandler|null $error_handler An optional error handler.
+     * @param Importable $importable A save operation is always related to an importable.
+     * @param Attribute  $attribute  A save operation is always related to an attribute.
      *
-     * @return int|bool|null
+     * @throws AttributeSaveException An error should be thrown for erroneous saves.
+     *
+     * @return int|bool|null Null on type error. False on post meta save error.
      */
-    public function save( Importable $importable, Attribute $attribute, ?ErrorHandler $error_handler = null ) {
+    public function save( Importable $importable, Attribute $attribute, ErrorHandler $error_handler ) {
+        if ( ! $attribute instanceof PostMeta ) {
+            $error_handler->set_error(
+                static::ESCOPE,
+                'The post meta saver can only save post meta attributes. Type given: ' . get_class( $attribute ),
+                $attribute
+            );
+            return null;
+        }
+
         $key   = $attribute->get_key();
         $value = $attribute->get_value();
 
-        // Check if post has am attachment thumbnail
-        if ( $key === '_thumbnail_id' ) {
-            // First check if attachments have been saved.
-            // If not, set an error and skip thumbnail setting.
-            if ( ! $importable->is_saved( 'attachments' ) ) {
-                // @codingStandardsIgnoreStart
-                $err = __( 'Attachments must be saved before saving the thumbnail id for a post. Discarding saving meta for the key "_thumbnail_id".', 'oopi' );
-                // @codingStandardsIgnoreEnd
-                $error_handler->set_error( 'meta', $key, $err );
-                return null;
-            }
-
-            // If attachment id exists
-            $attachment_post_id = $this->attachment_ids[ $value ] ?? '';
-
-            // If not empty set _thumbnail_id
-            if ( ! empty( $attachment_post_id ) ) {
-                $value = $attachment_post_id;
-            }
-            // Set error: attachment did not exist.
-            else {
-                // @codingStandardsIgnoreStart
-                $error_handler->set_error( 'meta', $key, __( 'Can not save the thumbnail data. The attachment was not found.', 'oopi' ) );
-                // @codingStandardsIgnoreEnd
-                return null;
-            }
-        }
-
-        // Update post meta
         return update_post_meta( $importable->get_wp_id(), $key, $value );
     }
 }

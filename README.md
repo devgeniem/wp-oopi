@@ -57,7 +57,7 @@ The first step in the import process is to set the data for the importer. This f
     - `caption` *(string) (Optional)* The file caption text.
     - `description` *(string) (Optional)* The file description text.
   - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
-  - `taxonomies` *(array) (Optional)* An array containing either-or:
+  - `terms` *(array) (Optional)* An array containing either-or:
     - *(Geniem\Oopi\Term)* OOPI Term object.
       - _If the OOPI term holds a WP_Term object, importing will override existing term data._
     - *(array|object)* Raw data will be mapped into a Term object.
@@ -98,7 +98,7 @@ See [the example post](./docs/examples/example-post.php).
       "src": "http://upload-from-here.com/123456.jpg",
     }
   ],
-  "taxonomies": [
+  "terms": [
     {
       "oopi_id": "my-term-123",
       "slug": "my-term",

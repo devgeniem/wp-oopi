@@ -24,7 +24,9 @@ use Geniem\Oopi\Util;
  */
 class Polylang {
     /**
-     * Holds polylang.
+     * Holds Polylang.
+     *
+     * TODO: improve typing.
      *
      * @var object|null
      */
@@ -35,14 +37,14 @@ class Polylang {
      *
      * @var array
      */
-    protected static $languages = [];
+    protected static array $languages = [];
 
     /**
      * Holds current attachment id.
      *
-     * @var string
+     * @var array
      */
-    protected static $current_attachment_ids = [];
+    protected static array $current_attachment_ids = [];
 
     /**
      * Initialize.
@@ -121,75 +123,6 @@ class Polylang {
     }
 
     /**
-     * Save Polylang locale.
-     *
-     * @param Post $post The current importer post object.
-     * @return void
-     */
-    public static function save_pll_locale( &$post ) {
-
-        // Get needed variables
-        $post_id  = $post->get_post_id();
-        $wp_post  = get_post( $post_id );
-        $language = $post->get_language();
-        $locale   = $language->get_locale();
-        $master   = $language->get_master_oopi_id();
-
-        if ( $locale ) {
-
-            // Set post locale.
-            \pll_set_post_language( $post_id, $locale );
-
-            // If a post name was set in the data and it doesn't match the database,
-            // update post name to allow PLL to handle unique slugs.
-            if (
-                $post->get_post_name() &&
-                $post->get_post_name() !== $wp_post->post_name
-            ) {
-                wp_update_post(
-                    [
-                        'ID'        => $post->get_post_id(),
-                        'post_name' => $post->get_post_name(),
-                    ]
-                );
-            }
-
-            // Run only if master exists
-            if ( $master ) {
-
-                // Get master post id for translation linking
-                $master_post_id = Storage::get_post_id_by_oopi_id( $master );
-                $master_locale  = \pll_get_post_language( $master_post_id );
-
-                // Set the link for translations if a matching post was found.
-                if ( $master_post_id ) {
-
-                    // Get current translation.
-                    $current_translations = \pll_get_post_translations( $master_post_id );
-
-                    // Set up new translations.
-                    $new_translations = [
-                        $master_locale => $master_post_id,
-                        $locale        => $post_id,
-                    ];
-
-                    $parsed_args = \wp_parse_args( $new_translations, $current_translations );
-
-                    // Link translations.
-                    \pll_save_post_translations( $parsed_args );
-                }
-            }
-        }
-        else {
-            $post->set_error(
-                'pll',
-                $i18n,
-                __( 'i18n information is set, but it is missing data.', 'oopi' )
-            );
-        }
-    }
-
-    /**
      * Sets the term language.
      *
      * @param Term $term The Oopi term.
@@ -229,8 +162,8 @@ class Polylang {
         pll_set_term_language( $wp_term->term_id, $locale );
 
         // Try to set translations.
-        if ( $language_obj instanceof Language && $language_obj->get_master_oopi_id() ) {
-            $master = $language_obj->get_master_oopi_id();
+        if ( $language_obj instanceof Language && $language_obj->get_main_oopi_id() ) {
+            $master = $language_obj->get_main_oopi_id();
 
             // Get master post id for translation linking
             $master_term_id = Storage::get_term_id_by_oopi_id( $master );

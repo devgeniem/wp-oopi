@@ -3,29 +3,28 @@
  * An example of importing a post object.
  */
 
-use Geniem\Oopi\Language;
-use Geniem\Oopi\Post;
-use Geniem\Oopi\Term;
+use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Importable\PostImportable;
 
 // The unique id for the post.
 $oopi_id = 'my_custom_id_1234';
 
 // Create a post object.
-$post = new Post( $oopi_id );
+$post = new PostImportable( $oopi_id );
 
 // In this example this post is an english version
-// of the post with the Oopi id 56.
-$post->set_language( new Language( 'en', 56 ) );
+// of the post with the Oopi id 'the_default_object_56'.
+$post->set_language( new Language( $post, 'en', 'the_default_object_56' ) );
 
 // Set the basic post data as an associative array and cast it to object.
-$post->set_post(
+$post->set_post( new WP_Post(
     (object) [
         'post_title'   => 'The post title',
         'post_name'    => sanitize_title( 'The post title' ),
         'post_content' => 'The post main content HTML.',
         'post_excerpt' => 'The excerpt text of the post.',
     ]
-);
+) );
 
 // The array of attachments.
 $post->set_attachments(

@@ -15,43 +15,46 @@ use Geniem\Oopi\Interfaces\ErrorHandler;
 class OopiErrorHandler implements ErrorHandler {
 
     /**
-     * Error messages under correspondings scopes as the key.
-     * Example:
-     *      [
-     *          'post' => [
-     *              'post_title' => 'The post title is not valid.'
-     *          ]
-     *      ]
+     * Error messages and data.
      *
      * @var array
      */
-    protected $errors = [];
+    protected array $errors = [];
+
+    /**
+     * The error scope.
+     *
+     * @var string
+     */
+    private string $scope;
+
+    /**
+     * OopiErrorHandler constructor.
+     *
+     * @param string $scope The error scope.
+     */
+    public function __construct( string $scope ) {
+        $this->scope = $scope;
+    }
 
     /**
      * Set a single error and store it in the class.
      *
-     * @param string $scope The error scope.
-     * @param mixed  $data  The data related to the error.
-     * @param string $error The error message.
+     * @param string     $error The error message.
+     * @param mixed|null $data  Optional data related to the error.
      */
-    public function set_error( $scope = '', $data = '', $error = '' ) {
-        // Get needed variables
-        $oopi_id = $this->oopi_id;
+    public function set_error( $error = '', $data = null ) {
+        $this->errors[ $this->scope ] = $this->errors[ $this->scope ] ?? [];
 
-        $this->errors[ $scope ] = $this->errors[ $scope ] ?? [];
-
-        $message = '(' . Settings::get( 'id_prefix' ) . $oopi_id . ') ' . $error;
-
-        $this->errors[ $scope ][] = [
-            'message' => $message,
+        $this->errors[ $this->scope ][] = [
+            'message' => $error,
             'data'    => $data,
         ];
 
         // Maybe log errors.
         if ( Settings::get( 'log_errors' ) ) {
-            // @codingStandardsIgnoreStart
-            error_log( 'OOPI: ' . $error );
-            // @codingStandardsIgnoreEnd
+            $scope = $this->scope;
+            error_log( "OOPI ERROR - $scope - $error" ); // phpcs:ignore
         }
     }
 

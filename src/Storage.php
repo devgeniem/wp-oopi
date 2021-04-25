@@ -5,7 +5,10 @@
 
 namespace Geniem\Oopi;
 
-use Geniem\Oopi\Importable\Post;
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
+use Geniem\Oopi\Interfaces\ErrorHandler;
+use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -206,13 +209,12 @@ class Storage {
     /**
      * Create a new term.
      *
-     * @param  Term $term Term data.
-     * @param  Post $post The current Oopi post instance.
+     * @param  TermImportable $term Term data.
      *
-     * @return array|\WP_Error An array containing the `term_id` and `term_taxonomy_id`,
+     * @return array|WP_Error An array containing the `term_id` and `term_taxonomy_id`,
      *                        WP_Error otherwise.
      */
-    public static function create_new_term( Term $term, Post $post ) {
+    public static function create_new_term( TermImportable $term ) {
         // If parent's Oopi id is set, fetch it. Default to 0.
         $parent    = $term->get_parent();
         $parent_id = $parent ? static::get_term_id_by_oopi_id( $parent ) : 0;
@@ -227,17 +229,6 @@ class Storage {
                 'parent'      => $parent_id,
             ]
         );
-        // Something went wrong.
-        if ( is_wp_error( $result ) ) {
-            $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
-            $post->set_error( 'taxonomy', $term->get_name(), $err );
-            return $result;
-        }
-
-        // Identify the Oopi term.
-        $wp_term = get_term( $result['term_id'] );
-        $term->set_term( $wp_term );
-        $term->identify();
 
         return $result;
     }

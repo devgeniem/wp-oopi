@@ -5,6 +5,8 @@
 
 namespace Geniem\Oopi\Interfaces;
 
+use Geniem\Oopi\Exception\AttributeValidationException;
+
 /**
  * Interface ImportableAttribute
  *
@@ -31,5 +33,4 @@ interface Attribute {
      * @return int|string It is encouraged that the id of the saved attribute is returned.
      */
     public function save();
-
 }
