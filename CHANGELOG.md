@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.3.5] - 2021-04-28
+
 ### Fixed
 - Fixed post parent handling when using WordPress's post id.
 
