@@ -6,7 +6,8 @@
 namespace Geniem\Oopi\Attribute\Saver;
 
 use Geniem\Oopi\Attribute\AcfField;
-use Geniem\Oopi\Exception\AttributeSaveException;
+use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Factory\TermFactory;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\Attribute;
@@ -29,16 +30,15 @@ class AcfFieldSaver implements AttributeSaver {
      * @param Importable $importable A save operation is always related to an importable.
      * @param Attribute  $attribute  A save operation is always related to an attribute.
      *
-     * @throws AttributeSaveException An error should be thrown for erroneous saves.
-     *
      * @return mixed|null Boolean containing the field update return value, null otherwise.
      */
     public function save( Importable $importable, Attribute $attribute ) {
         // Bail if ACF is not activated.
         if ( ! function_exists( 'get_field' ) ) {
-            throw new AttributeSaveException(
+            $importable->get_error_handler()->set_error(
                 'Advanced Custom Fields is not active! Please install and activate the plugin to save ACF data.'
             );
+            return null;
         }
 
         // Save a post field.
@@ -58,8 +58,8 @@ class AcfFieldSaver implements AttributeSaver {
      * @param PostImportable $post  The post importable.
      * @param AcfField       $field The ACF field attribute.
      *
-     * @throws AttributeSaveException Thrown if an error occurs.
      * @return bool
+     *@throws AttributeSaveException Thrown if an error occurs.
      */
     protected function save_post_acf( PostImportable $post, AcfField $field ) {
         $value = $field->get_value();
@@ -70,41 +70,39 @@ class AcfFieldSaver implements AttributeSaver {
                 $terms = [];
                 foreach ( $field->get_value() as $term ) {
                     if ( ! $term instanceof TermImportable ) {
-                        $term = ( new TermImportable( Util::get_prop( $term, 'oopi_id' ) ) )->set_data( $term );
+                        $term = TermFactory::create( Util::get_prop( $term, 'oopi_id' ), $term );
                     }
 
                     // TODO: remove term creation from this method. Terms should be created before saving attributes.
                     // If the term does not exist, create it.
                     if ( ! $term->get_term() ) {
-                        $result = Storage::create_new_term( $term, $post );
-                        if ( is_wp_error( $result ) ) {
-                            throw new AttributeSaveException(
-                                "Unable to create the missing term for the ACF field: $key. Error: "
-                                . $result->get_error_message()
-                            );
+                        try {
+                            $term_id = $term->import();
+                            if ( ! $term_id ) {
+                                $post->get_error_handler()->set_error(
+                                    "An error occurred creating the missing term for the ACF field: $key."
+                                );
+                                continue;
+                            }
                         }
-                    }
-
-                    // Ensure identification. Data is only set once.
-                    $term->identify();
-
-                    // Handle localization.
-                    if ( $term->get_language() !== null ) {
-                        LanguageUtil::set_term_language( $term, $post );
+                        catch ( TypeException $e ) {
+                            $post->get_error_handler()->set_error( $e->getMessage(), $e );
+                            continue;
+                        }
                     }
 
                     $terms[] = $term->get_wp_id();
                 }
                 if ( count( $terms ) ) {
-                    return update_field( $key, $terms, $post->get_post_id() );
+                    return update_field( $key, $terms, $post->get_wp_id() );
                 }
                 break;
 
             case 'image':
                 // Check if image exists.
-                $attachment_post_id = Storage::get_attachment_post_id_by_attachment_id( $value );
+                $attachment_post_id = Storage::get_post_id_by_oopi_id( $value );
                 if ( ! empty( $attachment_post_id ) ) {
-                    return update_field( $key, $attachment_post_id, $post->get_post_id() );
+                    return update_field( $key, $attachment_post_id, $post->get_wp_id() );
                 }
                 else {
                     throw new AttributeSaveException(
@@ -116,7 +114,7 @@ class AcfFieldSaver implements AttributeSaver {
             default:
                 // TODO: Test which field types require no extra logic.
                 // Currently tested: 'select'
-                return update_field( $key, $value, $post->get_post_id() );
+                return update_field( $key, $value, $post->get_wp_id() );
         }
 
         return false;

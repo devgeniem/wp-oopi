@@ -1,9 +1,12 @@
 <?php
+/**
+ * Error handlers hold and transmit error messages and data.
+ */
 
 namespace Geniem\Oopi\Interfaces;
 
 /**
- * Interface ErrorHandler
+ * ErrorHandler
  *
  * @property array $errors Holds the errors.
  *

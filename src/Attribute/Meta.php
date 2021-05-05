@@ -5,13 +5,9 @@
 
 namespace Geniem\Oopi\Attribute;
 
-use Geniem\Oopi\Exception\AttributeSaveException;
-use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
-use Geniem\Oopi\OopiErrorHandler;
-use Geniem\Oopi\Util;
 
 /**
  * Class Meta
@@ -104,8 +100,7 @@ abstract class Meta implements Attribute {
     /**
      * Saves the attribute with the saver if it is set.
      *
-     * @return int|string|void|null
-     * @throws AttributeSaveException An error is thrown if the saving fails.
+     * @return mixed|null
      */
     public function save() {
         if ( ! empty( $this->saver ) ) {
@@ -113,21 +108,5 @@ abstract class Meta implements Attribute {
         }
 
         return null;
-    }
-
-    /**
-     * Factory method for creating the object from raw data.
-     *
-     * @param Importable   $importable The importable object.
-     * @param array|object $data       The field data.
-     *
-     * @return Meta
-     */
-    public static function factory( Importable $importable, $data ) : Meta {
-        $key   = Util::get_prop( $data, 'key' );
-        $value = Util::get_prop( $data, 'value' );
-        $saver = Util::get_prop( $data, 'saver', null );
-
-        return new static( $importable, $key, $value, $saver );
     }
 }

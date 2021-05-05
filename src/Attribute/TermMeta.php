@@ -1,35 +1,35 @@
 <?php
 /**
- * Attribute
+ * Term meta attribute.
  */
 
 namespace Geniem\Oopi\Attribute;
 
-use Geniem\Oopi\Attribute\Saver\PostMetaSaver;
+use Geniem\Oopi\Attribute\Saver\TermMetaSaver;
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 
 /**
- * Class PostMeta
+ * Class TermMeta
  *
  * @package Geniem\Oopi\Attribute
  */
-class PostMeta extends Meta {
+class TermMeta extends Meta {
 
     /**
      * Error scope.
      */
-    const ESCOPE = 'post_meta';
+    const ESCOPE = 'term_meta';
 
     /**
-     * PostMeta constructor.
+     * TermMeta constructor.
      *
      * @param Importable          $importable The importable.
      * @param string              $key        The meta key.
      * @param mixed               $value      The meta value.
-     * @param AttributeSaver|null $saver      An optional saver. The PostMetaSaver by default.
+     * @param AttributeSaver|null $saver      An optional saver. The TermMetaSaver by default.
      *
      * @throws TypeException Throws an error if the importable is not the correct type.
      */
@@ -39,12 +39,12 @@ class PostMeta extends Meta {
         $value = null,
         ?AttributeSaver $saver = null
     ) {
-        if ( ! $importable instanceof PostImportable ) {
-            throw new TypeException( 'PostMeta requires an importable of type: ' . PostImportable::class );
+        if ( ! $importable instanceof TermImportable ) {
+            throw new TypeException( 'TermMeta requires an importable of type: ' . TermImportable::class );
         }
 
         // Set default handlers if not passed.
-        $saver = $saver ?? new PostMetaSaver();
+        $saver = $saver ?? new TermMetaSaver();
 
         parent::__construct( $importable, $key, $value, $saver );
     }

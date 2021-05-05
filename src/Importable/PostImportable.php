@@ -1,22 +1,22 @@
 <?php
 /**
- * The Post class is used to import posts into WordPres.
+ * The post importable.
  */
 
 namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\AcfField;
-use Geniem\Oopi\Attribute\PostMeta;
 use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Factory\AcfFieldFactory;
 use Geniem\Oopi\Importer\PostImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
 use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Storage;
-use Geniem\Oopi\Traits\ImportableLanguage;
-use Geniem\Oopi\Traits\ImporterAccessing;
-use Geniem\Oopi\Traits\ImportStatus;
+use Geniem\Oopi\Traits\HasPostMeta;
+use Geniem\Oopi\Traits\ImportableBase;
+use Geniem\Oopi\Traits\Translatable;
 use Geniem\Oopi\Util;
 use WP_Post;
 
@@ -37,19 +37,19 @@ class PostImportable implements Importable {
     const ESCOPE = 'post';
 
     /**
+     * Use basic functionalities.
+     */
+    use ImportableBase;
+
+    /**
+     * Use post meta fetaures.
+     */
+    use HasPostMeta;
+
+    /**
      * Use the language attribute.
      */
-    use ImportableLanguage;
-
-    /**
-     * Use the importer property.
-     */
-    use ImporterAccessing;
-
-    /**
-     * Feature for checking if the importable is imported already.
-     */
-    use ImportStatus;
+    use Translatable;
 
     /**
      * A unique id for external identification.
@@ -70,7 +70,7 @@ class PostImportable implements Importable {
      *
      * @var int|null
      */
-    protected ?int $post_id;
+    protected ?int $wp_id;
 
     /**
      * An object resembling the WP_Post class instance.
@@ -95,13 +95,6 @@ class PostImportable implements Importable {
     protected array $attachment_ids = [];
 
     /**
-     * Metadata in an associative array.
-     *
-     * @var array
-     */
-    protected array $meta = [];
-
-    /**
      * Oopi Term objects in an array.
      *
      * @var TermImportable[]
@@ -116,52 +109,12 @@ class PostImportable implements Importable {
     protected array $acf = [];
 
     /**
-     * Getter for post_id
-     *
-     * @return integer
-     */
-    public function get_post_id() {
-        return $this->post_id;
-    }
-
-    /**
-     * Set the post id.
-     *
-     * @param int $post_id The post_id.
-     *
-     * @return PostImportable Return self to enable chaining.
-     */
-    public function set_post_id( int $post_id ): PostImportable {
-        $this->post_id = $post_id;
-
-        return $this;
-    }
-
-    /**
      * Getter for the post name in the set post data.
      *
      * @return string
      */
     public function get_post_name() {
         return $this->post->post_name ?? '';
-    }
-
-    /**
-     * Getter for ig_id
-     *
-     * @return string
-     */
-    public function get_oopi_id(): string {
-        return $this->oopi_id;
-    }
-
-    /**
-     * Getter for i18n
-     *
-     * @return array
-     */
-    public function get_i18n() {
-        return $this->i18n;
     }
 
     /**
@@ -220,33 +173,6 @@ class PostImportable implements Importable {
     }
 
     /**
-     * Getter for the post id.
-     *
-     * @return int|null
-     */
-    public function get_wp_id(): ?int {
-        return $this->get_post_id();
-    }
-
-    /**
-     * Getter for the importer.
-     *
-     * @return Importer
-     */
-    public function get_importer(): Importer {
-        return $this->importer;
-    }
-
-    /**
-     * Get the error handler.
-     *
-     * @return ErrorHandler
-     */
-    public function get_error_handler(): ErrorHandler {
-        return $this->error_handler;
-    }
-
-    /**
      * Encode an instance into JSON.
      *
      * @return string|false The JSON encoded string, or false if it cannot be encoded.
@@ -266,20 +192,15 @@ class PostImportable implements Importable {
         // If no error handler is set, use the default one.
         $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
 
-        try {
-            $this->importer = $importer ?? new PostImporter( $this, $error_handler );
-        }
-        catch ( TypeException $e ) {
-            $this->error_handler->set_error( 'Unable to create the post importable. Error: ' . $e->getMessage() );
-        }
+        $this->importer = $importer ?? new PostImporter();
 
         // Set the Importer id.
         $this->oopi_id = $oopi_id;
         // Fetch the WP post id, if it exists.
-        $this->set_post_id( Storage::get_post_id_by_oopi_id( $oopi_id ) ?: null );
-        if ( $this->post_id ) {
+        $this->set_wp_id( Storage::get_post_id_by_oopi_id( $oopi_id ) ?: null );
+        if ( $this->wp_id ) {
             // Fetch the existing WP post object.
-            $this->post = get_post( $this->post_id );
+            $this->post = get_post( $this->wp_id );
             // Unset the time values to ensure updates.
             unset( $this->post->post_date );
             unset( $this->post->post_date_gmt );
@@ -289,68 +210,17 @@ class PostImportable implements Importable {
     }
 
     /**
-     * Handles a full importer object data setting.
-     *
-     * @param object|array $data An object|array following the plugin specification.
-     *
-     * @return PostImportable By returning self, setters are chainable.
-     */
-    public function set_data( $data ) : PostImportable {
-        $post        = Util::get_prop( $data, 'post', null );
-        $attachments = Util::get_prop( $data, 'attachments', null );
-        $meta        = Util::get_prop( $data, 'meta', null );
-        $terms       = Util::get_prop( $data, 'terms', null );
-        $acf         = Util::get_prop( $data, 'acf', null );
-        $language    = Util::get_prop( $data, 'language', null );
-
-        $this->set_post( $post );
-
-        // Attachments
-        if ( is_array( $attachments ) ) {
-            $this->set_attachments( $attachments );
-        }
-
-        // Post meta
-        if ( is_array( $meta ) ) {
-            $this->set_meta( $meta );
-        }
-
-        // Taxonomies
-        if ( is_array( $terms ) ) {
-            $this->set_terms( $terms );
-        }
-
-        // Advanced Custom Fields
-        if ( is_array( $acf ) ) {
-            $this->set_acf( $acf );
-        }
-
-        // If post object has a language object property, set post language.
-        if ( ! empty( $language ) ) {
-            $this->set_language( $language );
-        }
-
-        return $this;
-    }
-
-    /**
      * Sets the basic data of a post.
      *
      * @param  WP_Post $post_obj Post object.
      * @return WP_Post Post object.
      */
     public function set_post( WP_Post $post_obj ) {
-        // If the post already exists, update values.
-        if ( ! empty( $this->post ) ) {
-            foreach ( get_object_vars( $post_obj ) as $attr => $value ) {
-                $this->post->{$attr} = $value;
-            }
-        }
-        else {
-            // Set the post object.
-            $this->post    = new \WP_Post( $post_obj );
-            $this->post_id = $this->post->ID;
-        }
+        // Set the WP id.
+        $this->set_wp_id( $this->post->ID );
+        // Set the post object.
+        $this->post = new WP_Post( $post_obj );
+
         // Filter values before validating.
         foreach ( get_object_vars( $this->post ) as $attr => $value ) {
             $this->post->{$attr} = apply_filters( "oopi_post_value_{$attr}", $value );
@@ -373,7 +243,7 @@ class PostImportable implements Importable {
     /**
      * Validates the post object data.
      *
-     * @param \WP_Post $post_obj An WP_Post instance.
+     * @param WP_Post $post_obj An WP_Post instance.
      */
     public function validate_post( $post_obj ) {
         // Validate the author.
@@ -407,7 +277,7 @@ class PostImportable implements Importable {
                 The post is currently trashed, please solve before importing.';
                 $this->error_handler->set_error( $err );
             }
-            elseif ( ! array_key_exists( $post_obj->post_status, $post_statuses ) ) {
+            if ( ! array_key_exists( $post_obj->post_status, $post_statuses ) ) {
                 $err = 'Error in the "post_status" column. The value is not a valid post status.';
                 $this->error_handler->set_error( $err );
             }
@@ -490,31 +360,6 @@ class PostImportable implements Importable {
     public function set_attachments( array $attachments ) {
         // TODO: cast to attachment importables.
         $this->attachments = $attachments;
-    }
-
-    /**
-     * Sets the post meta data.
-     *
-     * @param array $meta_data The meta data in an associative array.
-     */
-    public function set_meta( array $meta_data = [] ) {
-        // Cast data to PostMeta.
-        $this->meta = array_filter( array_map( function( $meta ) {
-            if ( $meta instanceof PostMeta ) {
-                return $meta;
-            }
-
-            try {
-                return PostMeta::factory( $this, $meta );
-            }
-            catch ( \Exception $e ) {
-                $this->error_handler->set_error(
-                    'Unable to create the post meta attribute. Error: ' . $e->getMessage(),
-                    $meta
-                );
-            }
-            return null;
-        }, $meta_data ) );
     }
 
     /**
@@ -613,7 +458,7 @@ class PostImportable implements Importable {
             }
 
             try {
-                return AcfField::factory( $this, $field );
+                return AcfFieldFactory::create( $this, $field );
             }
             catch ( \Exception $e ) {
                 $this->error_handler->set_error(
@@ -624,12 +469,4 @@ class PostImportable implements Importable {
             return null;
         }, $acf_data ) );
     }
-
-    /**
-     * Checks whether the current post is valid.
-     */
-    public function validate() : bool {
-        return empty( $this->error_handler->get_errors() );
-    }
-
 }

@@ -115,31 +115,6 @@ class Storage {
     }
 
     /**
-     * Query the WP post id by the given attachment id.
-     *
-     * @param  int $id     The attachment id to be matched with postmeta.
-     * @return int|boolean The found attachment post id or 'false' for empty results.
-     */
-    public static function get_attachment_post_id_by_attachment_id( $id ) {
-        global $wpdb;
-        // Concatenate the meta key.
-        $post_meta_key = Settings::get( 'attachment_prefix' ) . $id;
-        // Prepare the sql.
-        $prepared = $wpdb->prepare(
-            "SELECT DISTINCT post_id FROM $wpdb->postmeta WHERE meta_key = %s",
-            $post_meta_key
-        );
-        // Fetch results from the postmeta table.
-        $results = $wpdb->get_col( $prepared ); // phpcs:ignore
-
-        if ( ! empty( $results ) ) {
-            return (int) $results[0];
-        }
-
-        return false;
-    }
-
-    /**
      * Delete a post by Oopi id
      *
      * @param  int     $oopi_id      Oopi id.
@@ -204,32 +179,5 @@ class Storage {
         }
 
         return $terms[0];
-    }
-
-    /**
-     * Create a new term.
-     *
-     * @param  TermImportable $term Term data.
-     *
-     * @return array|WP_Error An array containing the `term_id` and `term_taxonomy_id`,
-     *                        WP_Error otherwise.
-     */
-    public static function create_new_term( TermImportable $term ) {
-        // If parent's Oopi id is set, fetch it. Default to 0.
-        $parent    = $term->get_parent();
-        $parent_id = $parent ? static::get_term_id_by_oopi_id( $parent ) : 0;
-
-        // Insert the new term.
-        $result = wp_insert_term(
-            $term->get_name(),
-            $term->get_taxonomy(),
-            [
-                'slug'        => $term->get_slug(),
-                'description' => $term->get_description(),
-                'parent'      => $parent_id,
-            ]
-        );
-
-        return $result;
     }
 }

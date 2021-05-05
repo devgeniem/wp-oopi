@@ -141,10 +141,10 @@ class AcfField implements Attribute {
     /**
      * Save the field data with the saver.
      *
-     * @throws AttributeSaveException Thrown on save errors.
+     * @return mixed|void Depends on the saver.
      */
     public function save() {
-        $this->saver->save( $this->importable, $this );
+        return $this->saver->save( $this->importable, $this );
     }
 
     /**
@@ -158,22 +158,5 @@ class AcfField implements Attribute {
         $this->importable = $importable;
 
         return $this;
-    }
-
-    /**
-     * Factory method for creating the object from raw data.
-     *
-     * @param Importable   $importable The importable object.
-     * @param array|object $data       The field data.
-     *
-     * @return AcfField
-     */
-    public static function factory( Importable $importable, $data ) : AcfField {
-        $key   = Util::get_prop( $data, 'key' );
-        $type  = Util::get_prop( $data, 'type' );
-        $value = Util::get_prop( $data, 'value' );
-        $saver = Util::get_prop( $data, 'saver', null );
-
-        return new self( $importable, $key, $type, $value, $saver );
     }
 }

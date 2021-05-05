@@ -1,14 +1,27 @@
 <?php
+/**
+ * The attachment importable.
+ */
 
 namespace Geniem\Oopi\Importable;
 
+use Geniem\Oopi\Attribute\PostMeta;
+use Geniem\Oopi\Factory\PostMetaFactory;
+use Geniem\Oopi\Importer\AttachmentImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
+use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
-use Geniem\Oopi\Traits\ImportableLanguage;
-use Geniem\Oopi\Traits\ImporterAccessing;
-use Geniem\Oopi\Traits\ImportStatus;
+use Geniem\Oopi\OopiErrorHandler;
+use Geniem\Oopi\Traits\HasPostMeta;
+use Geniem\Oopi\Traits\ImportableBase;
+use Geniem\Oopi\Traits\Translatable;
 
-class AttachmentImportable implements \Geniem\Oopi\Interfaces\Importable {
+/**
+ * Class AttachmentImportable
+ *
+ * @package Geniem\Oopi\Importable
+ */
+class AttachmentImportable implements Importable {
 
     /**
      * The error scope.
@@ -16,65 +29,179 @@ class AttachmentImportable implements \Geniem\Oopi\Interfaces\Importable {
     const ESCOPE = 'attachment';
 
     /**
+     * Use basic functionalities.
+     */
+    use ImportableBase;
+
+    /**
+     * Attachments can have post meta.
+     */
+    use HasPostMeta;
+
+    /**
      * Use the language attribute.
      */
-    use ImportableLanguage;
+    use Translatable;
 
     /**
-     * Use the importer property.
+     * The source URL/path from which to upload the attachment file into WordPress.
+     *
+     * @var string
      */
-    use ImporterAccessing;
+    protected string $src = '';
 
     /**
-     * Feature for checking if the importable is imported already.
+     * The file title text.
+     *
+     * @var string
      */
-    use ImportStatus;
+    protected string $title = '';
 
     /**
-     * @inheritDoc
+     * The alt text for the attachment.
+     *
+     * @var string
      */
-    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null ) {
+    protected string $alt = '';
+
+    /**
+     * The file caption text.
+     *
+     * @var string
+     */
+    protected string $caption = '';
+
+    /**
+     * The file description text.
+     *
+     * @var string
+     */
+    protected string $description = '';
+
+    /**
+     * Post constructor.
+     *
+     * @param string            $oopi_id       A unique id for the importable.
+     * @param Importer|null     $importer      The importer.
+     * @param ErrorHandler|null $error_handler An optional error handler.
+     */
+    public function __construct(
+        string $oopi_id,
+        ?Importer $importer = null,
+        ?ErrorHandler $error_handler = null
+    ) {
+        $this->oopi_id       = $oopi_id;
+        $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
+        $this->importer      = $importer ?? new AttachmentImporter();
     }
 
     /**
-     * @inheritDoc
+     * Set the src.
+     *
+     * @param string $src The src.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
      */
-    public function set_data( $data ) {
-        // TODO: Implement set_data() method.
+    public function set_src( string $src ) : AttachmentImportable {
+        $this->src = $src;
+
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * Set the title.
+     *
+     * @param string $title The title.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
      */
-    public function get_oopi_id(): string {
-        // TODO: Implement get_oopi_id() method.
+    public function set_title( string $title ) : AttachmentImportable {
+        $this->title = $title;
+
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * Set the alt.
+     *
+     * @param string $alt The alt.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
      */
-    public function get_wp_id(): ?int {
-        // TODO: Implement get_wp_id() method.
+    public function set_alt( string $alt ) : AttachmentImportable {
+        $this->alt = $alt;
+
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * Set the caption.
+     *
+     * @param string $caption The caption.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
      */
-    public function get_error_handler(): ErrorHandler {
-        // TODO: Implement get_error_handler() method.
+    public function set_caption( string $caption ) : AttachmentImportable {
+        $this->caption = $caption;
+
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * Set the description.
+     *
+     * @param string $description The description.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
      */
-    public function validate(): bool {
-        // TODO: Implement validate() method.
+    public function set_description( string $description ) : AttachmentImportable {
+        $this->description = $description;
+
+        return $this;
     }
 
     /**
-     * @inheritDoc
+     * Get the src.
+     *
+     * @return string
      */
-    public function import(): ?int {
-        // TODO: Implement import() method.
+    public function get_src(): string {
+        return $this->src;
+    }
+
+    /**
+     * Get the alt.
+     *
+     * @return string
+     */
+    public function get_alt(): string {
+        return $this->alt;
+    }
+
+    /**
+     * Get the caption.
+     *
+     * @return string
+     */
+    public function get_caption(): string {
+        return $this->caption;
+    }
+
+    /**
+     * Get the description.
+     *
+     * @return string
+     */
+    public function get_description(): string {
+        return $this->description;
+    }
+
+    /**
+     * Get the title.
+     *
+     * @return string
+     */
+    public function get_title(): string {
+        return $this->title;
     }
 }

@@ -95,18 +95,6 @@ class Polylang {
     }
 
     /**
-     * Set attachment language by post_id
-     *
-     * @param int    $attachment_post_id Attachment wp id.
-     * @param string $language The PLL language code.
-     */
-    public static function set_attachment_language( $attachment_post_id, $language ) {
-        if ( $language ) {
-            pll_set_post_language( $attachment_post_id, $language );
-        }
-    }
-
-    /**
      * Get attachment by attachment id and language
      *
      * @param int    $attachment_post_id Attachment wp id.

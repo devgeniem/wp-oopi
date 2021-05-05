@@ -33,7 +33,6 @@ class Settings {
         self::$settings = $plugin_data;
 
         self::set( 'ID_PREFIX', 'oopi_id_' );
-        self::set( 'ATTACHMENT_PREFIX', 'oopi_attachment_' );
         self::set( 'LOG_ERRORS', false );
         self::set( 'TRANSIENT_KEY', 'oopi_' );
         self::set( 'TRANSIENT_EXPIRATION', HOUR_IN_SECONDS );

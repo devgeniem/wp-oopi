@@ -5,24 +5,24 @@
 
 namespace Geniem\Oopi\Importer;
 
+use Exception;
 use Geniem\Oopi\Attribute\Meta;
-use Geniem\Oopi\Exception\AttributeSaveException;
 use Geniem\Oopi\Exception\LanguageException;
 use Geniem\Oopi\Exception\PostException as PostException;
+use Geniem\Oopi\Exception\RollbackException;
 use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Importable\AttachmentImportable;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
-use Geniem\Oopi\Localization\Polylang as Polylang;
 use Geniem\Oopi\Log;
 use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Settings;
 use Geniem\Oopi\Storage;
-use Geniem\Oopi\Util;
 
 /**
- * Class PostImportHandler
+ * Class PostImporter
  *
  * @package Geniem\Oopi\Handler
  */
@@ -128,6 +128,7 @@ class PostImporter implements Importer {
      * @return int|null On success, the WP item id is returned, null on failure.
      * @throws TypeException Thrown if the importable is not a post importable.
      * @throws PostException Thrown if the post data is not valid.
+     * @throws RollbackException Thrown if the rollback execution fails after failing the initial import.
      */
     public function import( Importable $importable, ?ErrorHandler $error_handler = null ) : ?int {
         if ( ! $importable instanceof PostImportable ) {
@@ -155,7 +156,7 @@ class PostImporter implements Importer {
         }
 
         // Hook for running functionalities before saving the post.
-        do_action( 'oopi_before_post_save', $this );
+        do_action( 'oopi_before_post_import', $this );
 
         $post_arr = (array) $this->importable->get_post();
 
@@ -190,9 +191,9 @@ class PostImporter implements Importer {
         }
 
         // Identify the post, if not yet done.
-        if ( empty( $this->importable->get_post_id() ) ) {
-            $this->importable->set_post_id( $post_id );
-            $this->identify();
+        if ( empty( $this->importable->get_wp_id() ) ) {
+            $this->importable->set_wp_id( $post_id );
+            $this->identify( $this->importable->get_oopi_id(), $post_id );
         }
 
         // Save localization data.
@@ -202,7 +203,7 @@ class PostImporter implements Importer {
 
         // Save attachments.
         if ( ! empty( $this->importable->get_attachments() ) ) {
-            $this->save_attachments();
+            $this->import_attachments();
         }
 
         // Save metadata.
@@ -254,292 +255,27 @@ class PostImporter implements Importer {
         remove_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
         remove_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
 
-        // Hook for running functionalities after saving the post.
-        do_action( 'oopi_after_post_save', $this );
+        $this->importable->set_post( get_post( $post_id ) );
 
-        $this->importable->is_imported();
+        $this->importable->set_imported( true );
+
+        // Hook for running functionalities after saving the post.
+        do_action( 'oopi_after_post_import', $this );
 
         return $post_id;
     }
 
     /**
      * Saves the attachments of the post.
-     * Currently supports images.
-     *
-     * TODO: Refactor and move logic to the attachment importable and the attachment importer.
-     *
-     * @todo add support for other media formats too
      */
-    protected function save_attachments() {
-        // All of the following are required for the media_sideload_image function.
-        if ( ! function_exists( '\media_sideload_image' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/media.php';
-        }
-        if ( ! function_exists( '\download_url' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        if ( ! function_exists( '\wp_read_image_metadata' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-        }
-
-        $attachment_prefix   = Settings::get( 'attachment_prefix' );
-        $attachment_language = $this->importable->get_language();
-
-        foreach ( $this->importable->get_attachments() as &$attachment ) {
-
-            $attachment_id      = Util::get_prop( $attachment, 'id' );
-            $attachment_src     = Util::get_prop( $attachment, 'src' );
-            $attachment_post_id = Storage::get_attachment_post_id_by_attachment_id( $attachment_id );
-            $attachment_oopi_id = $attachment_prefix . $attachment_id;
-
-            if ( empty( $attachment_src ) || empty( $attachment_id ) ) {
-                $this->error_handler->set_error(
-                    'attachment', __( 'The attachment object has missing parameters.', 'oopi' ), $attachment
-                );
-                continue;
-            }
-
-            // Check if attachment doesn't exists, and upload it.
-            if ( ! $attachment_post_id ) {
-
-                // Insert upload attachment from url
-                $attachment_post_id = $this->insert_attachment_from_url(
-                    $attachment_src,
-                    $attachment,
-                    $this->importable->get_post_id()
-                );
-
-                // Something went wrong.
-                if ( is_wp_error( $attachment_post_id ) ) {
-                    // @codingStandardsIgnoreStart
-                    $this->error_handler->set_error( 'attachment', $attachment, __( 'An error occurred uploading the file.', 'oopi' ) );
-                    // @codingStandardsIgnoreEnd
-                }
-
-                if ( $attachment_post_id ) {
-                    // Set indexed meta for fast queries.
-                    // Depending on the attachment prefix this would look something like:
-                    // meta_key             | meta_value
-                    // oopi_attachment_{1234} | 1234
-                    update_post_meta( $attachment_post_id, $attachment_oopi_id, $attachment_id );
-                    // Set the generally queryable id.
-                    // Depending on the attachment prefix this would look something like:
-                    // meta_key       | meta_value
-                    // oopi_attachment  | 1234
-                    update_post_meta( $attachment_post_id, rtrim( $attachment_prefix, '_' ), $attachment_id );
-
-                    // Set the attachment locale if Polylang is active.
-                    if ( Polylang::pll() ) {
-                        $attachment_language = Util::get_prop( $this->importable->get_i18n(), 'locale' );
-
-                        if ( $attachment_language ) {
-                            Polylang::set_attachment_language( $attachment_post_id, $attachment_language );
-                        }
-                    }
-                }
-            }
-
-            // Update attachment meta and handle translations
-            if ( $attachment_post_id ) {
-
-                // Get attachment translations.
-                if ( Polylang::pll() ) {
-                    $attachment_post_id = Polylang::get_attachment_by_language(
-                        $attachment_post_id,
-                        $attachment_language
-                    );
-                }
-
-                // Update attachment info.
-                $attachment_args = [
-                    'ID'           => $attachment_post_id,
-                    'post_title'   => Util::get_prop( $attachment, 'title' ),
-                    'post_content' => Util::get_prop( $attachment, 'description' ),
-                    'post_excerpt' => Util::get_prop( $attachment, 'caption' ),
-                ];
-
-                // Save the attachment post object data
-                wp_update_post( $attachment_args );
-
-                // Get the alt text if set.
-                $alt_text = Util::get_prop( $attachment, 'alt' );
-
-                // If alt was empty, use caption as an alternative text.
-                $alt_text = $alt_text ?: Util::get_prop( $attachment, 'caption' );
-
-                if ( $alt_text ) {
-                    // Save image alt text into attachment post meta
-                    update_post_meta( $attachment_post_id, '_wp_attachment_image_alt', $alt_text );
-                }
-
-                // Set the attachment post_id.
-                $wp_id = Util::set_prop( $attachment, 'post_id', $attachment_post_id );
-                // Store the ids to the importable.
-                $this->importable->map_attachment_id( $attachment_oopi_id, $wp_id );
-            }
-        }
+    protected function import_attachments() {
+        $attachments = $this->importable->get_attachments();
+        array_walk( $attachments, function( AttachmentImportable $importable ) {
+            $importable->import();
+        } );
 
         // Done saving.
         $this->set_save_state( 'attachments' );
-    }
-
-    /**
-     * Insert an attachment from an URL address.
-     *
-     * @param string $attachment_src Source file url.
-     * @param object $attachment     Post class instances attachment.
-     * @param int    $post_id        Attachments may be associated with a parent post or page.
-     *                               Specify the parent's post ID, or 0 if unattached.
-     *
-     * @return int   $attachment_id
-     */
-    protected function insert_attachment_from_url( $attachment_src, $attachment, $post_id ) {
-        $stream_context = null;
-
-        // If you want to ignore SSL Certificate chain errors, or just yeet it,
-        // define OOPI_IGNORE_SSL in your migration worker and set it true.
-        if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
-            $stream_context = stream_context_create( [
-                'ssl' => [
-                    'verify_peer'      => false,
-                    'verify_peer_name' => false,
-                ],
-            ] );
-        }
-
-        // Get filename from the url.
-        $file_name = basename( $attachment_src );
-        // Exif related variables
-        $exif_imagetype            = exif_imagetype( $attachment_src );
-        $exif_supported_imagetypes = [
-            IMAGETYPE_JPEG,
-            IMAGETYPE_TIFF_II,
-            IMAGETYPE_TIFF_MM,
-        ];
-
-        // If the file name does not appear to contain a suffix, add it.
-        if ( strpos( $file_name, '.' ) === false ) {
-            $exif_types = [
-                '.gif',
-                '.jpeg',
-                '.png',
-                '.swf',
-                '.psd',
-                '.bmp',
-                '.tiff',
-                '.tiff',
-                '.jpc',
-                '.jp2',
-                '.jpx',
-                '.jb2',
-                '.swc',
-                '.iff',
-                '.wbmp',
-                '.xbm',
-                '.ico',
-                '.webp',
-            ];
-            // See: https://www.php.net/manual/en/function.exif-imagetype.php#refsect1-function.exif-imagetype-constants
-            $file_name .= $exif_types[ $exif_imagetype - 1 ];
-        }
-
-        // Construct file local url.
-        $tmp_folder  = Settings::get( 'tmp_folder' );
-        $local_image = $tmp_folder . $file_name;
-
-        // Copy file to local image location
-        copy( $attachment_src, $local_image, $stream_context );
-
-        // If exif_read_data is callable and file type could contain exif data.
-        if (
-            is_callable( 'exif_read_data' ) &&
-            in_array( $exif_imagetype, $exif_supported_imagetypes, true )
-        ) {
-            // Manipulate image exif data to prevent.
-            $this->strip_unsupported_exif_data( $local_image );
-        }
-
-        // Get file from local temp folder.
-        $file_content = file_get_contents( $local_image, false, $stream_context ); // phpcs:ignore
-
-        // Upload file to uploads.
-        $upload = wp_upload_bits( $file_name, null, $file_content );
-
-        // After upload process we are free to delete the tmp image.
-        unlink( $local_image );
-
-        // If error occured during upload return false.
-        if ( ! empty( $upload['error'] ) ) {
-            return false;
-        }
-
-        // File variables
-        $file_path     = $upload['file'];
-        $file_type     = wp_check_filetype( $file_name, null );
-        $wp_upload_dir = wp_upload_dir();
-
-        // wp_insert_attachment post info
-        $post_info = [
-            'guid'           => $wp_upload_dir['url'] . '/' . $file_name,
-            'post_mime_type' => $file_type['type'],
-            'post_title'     => Util::get_prop( $attachment, 'title' ),
-            'post_content'   => Util::get_prop( $attachment, 'description' ),
-            'post_excerpt'   => Util::get_prop( $attachment, 'caption' ),
-            'post_status'    => 'inherit',
-        ];
-
-        // Insert attachment to the database.
-        $attachment_id = wp_insert_attachment( $post_info, $file_path, $post_id, true );
-
-        // Generate post thumbnail attachment meta data.
-        $attachment_data = wp_generate_attachment_metadata( $attachment_id, $file_path );
-
-        // Assign metadata to an attachment.
-        wp_update_attachment_metadata( $attachment_id, $attachment_data );
-
-        return $attachment_id;
-    }
-
-    /**
-     * If exif_read_data() fails, remove exif data from the image file
-     * to prevent errors in WordPress core.
-     *
-     * @param string $local_image       Local url for an image.
-     * @return void No return.
-     */
-    protected function strip_unsupported_exif_data( $local_image ) {
-
-        // Variable for exif data errors in PHP
-        $php_exif_data_error_exists = false;
-
-        // Check for PHP exif_read_data function errors!
-        try {
-            exif_read_data( $local_image );
-        }
-        catch ( \Exception $e ) {
-            $php_exif_data_error_exists = true;
-        }
-
-        // If image magic is installed and exif_data_error exists
-        if ( class_exists( 'Imagick' ) && $php_exif_data_error_exists === true ) {
-
-            // Run image through image magick
-            try {
-                $imagick_object = new \Imagick( realpath( $local_image ) );
-
-                // Strip off all exif data to prevent PHP 5.6 and PHP 7.0 exif errors!
-                $imagick_object->stripImage();
-
-                // Write manipulated file to the tmp folder
-                $imagick_file = $imagick_object->writeImage( $local_image );
-            }
-            catch ( \Exception $e ) {
-                $this->error_handler->set_error(
-                    'Unable to write image. Error: ' . $e->getMessage(),
-                    $local_image
-                );
-            }
-        }
     }
 
     /**
@@ -554,7 +290,7 @@ class PostImporter implements Importer {
                 try {
                     $attr->save();
                 }
-                catch ( \Exception $e ) {
+                catch ( Exception $e ) {
                     $this->error_handler->set_error(
                         'Unable to save meta attribute. Error: ' . $e->getMessage(),
                         $attr
@@ -587,7 +323,7 @@ class PostImporter implements Importer {
             }
             foreach ( $term_ids_by_tax as $taxonomy => $terms ) {
                 // Set terms for the post object.
-                wp_set_object_terms( $this->importable->get_post_id(), $terms, $taxonomy );
+                wp_set_object_terms( $this->importable->get_wp_id(), $terms, $taxonomy );
             }
         }
 
@@ -629,19 +365,25 @@ class PostImporter implements Importer {
 
     /**
      * Adds postmeta rows for matching a WP post with the OOPI id.
+     *
+     * @param string $oopi_id The OOPI id.
+     * @param int    $wp_id   The WP id.
      */
-    public function identify() {
-        $oopi_id = $this->importable->get_oopi_id();
+    public function identify( string $oopi_id, int $wp_id ) {
+        if ( Storage::get_post_id_by_oopi_id( $oopi_id ) ) {
+            // Do not reset.
+            return;
+        }
 
         // Set the queryable identificator.
         // Example: meta_key = 'oopi_id', meta_value = 12345
-        update_post_meta( $this->importable->get_post_id(), Storage::get_idenfiticator(), $oopi_id );
+        update_post_meta( $wp_id, Storage::get_idenfiticator(), $oopi_id );
 
         $index_key = Storage::format_query_key( $oopi_id );
 
         // Set the indexed indentificator.
         // Example: meta_key = 'oopi_id_12345', meta_value = 12345
-        update_post_meta( $this->importable->get_post_id(), $index_key, $oopi_id );
+        update_post_meta( $wp_id, $index_key, $oopi_id );
     }
 
     /**
@@ -688,13 +430,13 @@ class PostImporter implements Importer {
      * Restores a post's state back to the last successful import.
      *
      * @return boolean Did we roll back or not?
-     * @throws PostException If the rollback fails, an exception is thrown.
+     * @throws RollbackException If the rollback fails, an exception is thrown.
      */
     protected function rollback() {
         // Set the rollback mode.
         $this->rollback_mode = true;
 
-        $last_import = Log::get_last_successful_import( $this->importable->get_post_id() );
+        $last_import = Log::get_last_successful_import( $this->importable->get_wp_id() );
 
         if ( $last_import && Settings::get( 'rollback_disable' ) !== true ) {
             // First delete all imported data.
@@ -703,16 +445,21 @@ class PostImporter implements Importer {
             // Save the previous import again.
             $data = $last_import->get_data();
             $this->importable->set_data( $data );
-            $this->import();
-
-            $this->rollback_mode = false;
+            try {
+                $this->import( $this->importable, $this->error_handler );
+                $this->rollback_mode = false;
+            }
+            catch ( Exception $e ) {
+                $this->rollback_mode = false;
+                throw new RollbackException( $e->getMessage(), $e->getCode(), $e );
+            }
 
             return true;
         }
         else {
             // Set post status to 'draft' to hide posts containing errors.
             $update_status = [
-                'ID'          => $this->importable->get_post_id(),
+                'ID'          => $this->importable->get_wp_id(),
                 'post_status' => 'draft',
             ];
 
@@ -730,13 +477,13 @@ class PostImporter implements Importer {
     public function delete_data() {
 
         // This removes most of data related to a post.
-        Storage::delete_post_meta_data( $this->importable->get_post_id() );
+        Storage::delete_post_meta_data( $this->importable->get_wp_id() );
 
         // Delete all term relationships.
-        \wp_delete_object_term_relationships( $this->importable->get_post_id(), \get_taxonomies() );
+        \wp_delete_object_term_relationships( $this->importable->get_wp_id(), \get_taxonomies() );
 
         // Run custom action for custom data.
         // Use this if the data is not in the postmeta table.
-        do_action( 'oopi_delete_data', $this->importable->get_post_id() );
+        do_action( 'oopi_delete_data', $this->importable->get_wp_id() );
     }
 }

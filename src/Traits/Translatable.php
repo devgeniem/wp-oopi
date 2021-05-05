@@ -6,14 +6,16 @@
 namespace Geniem\Oopi\Traits;
 
 use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Util;
 
 /**
- * Trait ImportableLanguage
+ * Trait Translatable
  *
  * @package Geniem\Oopi\Traits
  */
-trait ImportableLanguage {
+trait Translatable {
 
     /**
      * The language data.
@@ -35,8 +37,14 @@ trait ImportableLanguage {
      * Sets the post's language data.
      *
      * @param Language|array|object $language The language data.
+     *
+     * @throws TypeException If the trait is not used in an importable, a type error is thrown on usage.
      */
     public function set_language( $language ) {
+        if ( ! $this instanceof Importable ) {
+            throw new TypeException( 'Only an importable can have a language.' );
+        }
+
         try {
             if ( ! $language instanceof Language ) {
                 $locale       = Util::get_prop( $language, 'locale' );

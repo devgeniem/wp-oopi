@@ -1,21 +1,21 @@
 <?php
 /**
- * Attribute saver implementation for post meta attributes.
+ * Attribute saver implementation for term meta attributes.
  */
 
 namespace Geniem\Oopi\Attribute\Saver;
 
-use Geniem\Oopi\Attribute\PostMeta;
+use Geniem\Oopi\Attribute\TermMeta;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\Importable;
 
 /**
- * Class PostMetaAttributeSaver
+ * Class TermMetaSaver
  *
  * @package Geniem\Oopi\Attribute\Saver
  */
-class PostMetaSaver implements AttributeSaver {
+class TermMetaSaver implements AttributeSaver {
 
     /**
      * The save method implementation for post meta attributes.
@@ -25,8 +25,11 @@ class PostMetaSaver implements AttributeSaver {
      *
      * @return int|bool|null Null on type error. False on post meta save error.
      */
-    public function save( Importable $importable, Attribute $attribute ) {
-        if ( ! $attribute instanceof PostMeta ) {
+    public function save(
+        Importable $importable,
+        Attribute $attribute
+    ) {
+        if ( ! $attribute instanceof TermMeta ) {
             $importable->get_error_handler()->set_error(
                 'The post meta saver can only save post meta attributes. Type given: ' . get_class( $attribute ),
                 $attribute
@@ -37,6 +40,6 @@ class PostMetaSaver implements AttributeSaver {
         $key   = $attribute->get_key();
         $value = $attribute->get_value();
 
-        return update_post_meta( $importable->get_wp_id(), $key, $value );
+        return update_term_meta( $importable->get_wp_id(), $key, $value );
     }
 }

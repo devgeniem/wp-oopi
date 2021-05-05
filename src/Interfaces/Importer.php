@@ -1,16 +1,15 @@
 <?php
 /**
- * ImportHandler are used to handle the actual importing
+ * Importers are used to handle the actual importing
  * of different importable types.
  */
 
 namespace Geniem\Oopi\Interfaces;
 
 /**
- * Interface ImportHandler
+ * Importer
  *
- * @property Importable $importable Holds the importable object passed for the handler.
- *
+ * @property Importable $importable Holds the importable object passed for the importer.
  * @package Geniem\Oopi\Interfaces
  */
 interface Importer {
@@ -29,7 +28,10 @@ interface Importer {
      * Identify an importable with the OOPI id.
      * When called the first time, the id should be stored in the database.
      * This should be done in the beginning of the first import of an object.
+     *
+     * @param string $oopi_id The OOPI id.
+     * @param int    $wp_id   The WP id.
      */
-    public function identify();
+    public function identify( string $oopi_id, int $wp_id );
 
 }

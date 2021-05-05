@@ -8,7 +8,6 @@ namespace Geniem\Oopi\Attribute;
 use Geniem\Oopi\Exception\AttributeSaveException;
 use Geniem\Oopi\Exception\LanguageException;
 use Geniem\Oopi\Interfaces\AttributeSaver;
-use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Localization\LanguageUtil;
@@ -51,10 +50,10 @@ class Language implements Attribute {
     /**
      * Language constructor.
      *
-     * @param Importable          $importable    The importable the attribute belongs to.
-     * @param string              $locale        The locale code.
-     * @param string|null         $main_oopi_id  If this is not in the default language, a main object id should be set.
-     * @param AttributeSaver|null $saver         An optional saver. If none is set, the default saver is used.
+     * @param Importable          $importable   The importable the attribute belongs to.
+     * @param string              $locale       The locale code.
+     * @param string|null         $main_oopi_id If this is not in the default language, a main object id should be set.
+     * @param AttributeSaver|null $saver        An optional saver. If none is set, the default saver is used.
      */
     public function __construct(
         Importable $importable,
@@ -65,7 +64,9 @@ class Language implements Attribute {
         $this->importable   = $importable;
         $this->locale       = $locale;
         $this->main_oopi_id = $main_oopi_id;
-        $this->saver        = $saver ?? LanguageUtil::get_default_language_saver( $importable );
+        $this->saver        = $saver ?? LanguageUtil::get_default_language_saver(
+            $importable, LanguageUtil::get_activated_plugin()
+        );
     }
 
     /**
@@ -138,13 +139,7 @@ class Language implements Attribute {
      */
     public function save() {
         if ( ! empty( $this->saver ) ) {
-            try {
-                return $this->saver->save( $this->importable, $this );
-            }
-            catch ( AttributeSaveException $e ) {
-                // Cast the exception.
-                throw new LanguageException( $e->getMessage() );
-            }
+            return $this->saver->save( $this->importable, $this );
         }
 
         throw new LanguageException( 'Unable to save the language. No saver defined for: ' . __CLASS__ );

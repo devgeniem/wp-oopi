@@ -52,7 +52,7 @@ class LanguageUtil {
     public static function set_term_language( Term $term, PostImportable $post ) {
 
         // Check which translation plugin should be used
-        $activated_i18n_plugin = self::get_activated_i18n_plugin();
+        $activated_i18n_plugin = self::get_activated_plugin();
 
         // If no translation plugin was detected.
         if ( $activated_i18n_plugin === false ) {
@@ -77,7 +77,7 @@ class LanguageUtil {
      *
      * @return string|null The key for active plugin. Null if non found.
      */
-    public static function get_activated_i18n_plugin() : ?string {
+    public static function get_activated_plugin() : ?string {
         $active_plugin = [
             function_exists( 'PLL' )    => static::POLYLANG_KEY, // Polylang is active.
             class_exists( 'SitePress' ) => static::WPML_KEY, // WPML is active.
@@ -90,15 +90,15 @@ class LanguageUtil {
     /**
      * Get the default language attribute saver for a given importable.
      *
-     * @param Importable $importable The importable to use the language.
+     * @param Importable $importable    The importable to use the language.
+     * @param string     $active_plugin The active translations plugin key.
      *
      * @return AttributeSaver|null
      */
     public static function get_default_language_saver(
-        Importable $importable
+        Importable $importable,
+        string $active_plugin
     ) : ?AttributeSaver {
-        $active_plugin = self::get_activated_i18n_plugin();
-
         switch ( get_class( $importable ) ) {
             case PostImportable::class:
                 return self::post_language_saver_factory( $active_plugin );

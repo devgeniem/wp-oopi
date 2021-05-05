@@ -5,10 +5,8 @@
 
 namespace Geniem\Oopi\Interfaces;
 
-use Geniem\Oopi\Exception\AttributeValidationException;
-
 /**
- * Interface ImportableAttribute
+ * Attribute
  *
  * @property Importable   $importable All attributes must have a parent importable.
  *                                  For example a post meta attribute has an importable post object.

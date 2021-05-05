@@ -5,18 +5,17 @@
 
 namespace Geniem\Oopi\Importable;
 
-use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Attribute\TermMeta;
 use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Factory\TermMetaFactory;
 use Geniem\Oopi\Importer\TermImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
 use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Storage;
-use Geniem\Oopi\Traits\ImportableLanguage;
-use Geniem\Oopi\Traits\ImporterAccessing;
-use Geniem\Oopi\Traits\ImportStatus;
-use Geniem\Oopi\Traits\PropertyBinding;
+use Geniem\Oopi\Traits\ImportableBase;
+use Geniem\Oopi\Traits\Translatable;
 use WP_Term;
 
 /**
@@ -34,24 +33,14 @@ class TermImportable implements Importable {
     const ESCOPE = 'term';
 
     /**
+     * Use basic functionalities.
+     */
+    use ImportableBase;
+
+    /**
      * Use the language attribute.
      */
-    use ImportableLanguage;
-
-    /**
-     * Add the set_data() binding method.
-     */
-    use PropertyBinding;
-
-    /**
-     * Add the importer accessors.
-     */
-    use ImporterAccessing;
-
-    /**
-     * Feature for checking if the importable is imported already.
-     */
-    use ImportStatus;
+    use Translatable;
 
     /**
      * A unique id for external identification.
@@ -96,18 +85,18 @@ class TermImportable implements Importable {
     protected ?string $description = '';
 
     /**
-     * The optional language data
-     *
-     * @var Language
-     */
-    protected Language $language;
-
-    /**
      * An Oopi id of the parent term.
      *
      * @var string|null
      */
     protected ?string $parent;
+
+    /**
+     * Metadata in an associative array.
+     *
+     * @var TermMeta[]
+     */
+    protected array $meta = [];
 
     /**
      * The error handler.
@@ -123,16 +112,14 @@ class TermImportable implements Importable {
      * @param Importer|null     $importer      The importer.
      * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null ) {
+    public function __construct(
+        string $oopi_id,
+        ?Importer $importer = null,
+        ?ErrorHandler $error_handler = null
+    ) {
         $this->oopi_id       = $oopi_id;
         $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
-
-        try {
-            $this->importer = $importer ?? new TermImporter( $this, $error_handler );
-        }
-        catch ( TypeException $e ) {
-            $this->error_handler->set_error( 'Unable to create the term importable. Error: ' . $e->getMessage() );
-        }
+        $this->importer      = $importer ?? new TermImporter();
     }
 
     /**
@@ -191,8 +178,14 @@ class TermImportable implements Importable {
     public function set_term( ?WP_Term $term ) : TermImportable {
         $this->term = $term;
 
+        // Set the WP id.
+        $this->set_wp_id( $term->term_id );
+
         // Set properties with WP term data.
-        $this->set_data( $term );
+        $this->set_name( $term->name );
+        $this->set_slug( $term->slug );
+        $this->set_description( $term->description );
+        $this->set_taxonomy( $term->taxonomy );
 
         return $this;
     }
@@ -289,15 +282,6 @@ class TermImportable implements Importable {
     }
 
     /**
-     * Get the language.
-     *
-     * @return Language
-     */
-    public function get_language() : ?Language {
-        return $this->language;
-    }
-
-    /**
      * Get the parent term Oopi id.
      *
      * @return string|null
@@ -320,40 +304,40 @@ class TermImportable implements Importable {
     }
 
     /**
-     * Getter for the error handler.
+     * Sets the term meta data.
      *
-     * @return ErrorHandler
+     * @param array $meta_data The meta data.
      */
-    public function get_error_handler(): ErrorHandler {
-        return $this->error_handler;
+    public function set_meta( array $meta_data = [] ) {
+
+        // Cast data to term meta.
+        $this->meta = array_filter( array_map( function( $meta ) {
+            if ( $meta instanceof TermMeta ) {
+                return $meta;
+            }
+
+            try {
+                return TermMetaFactory::create( $this, $meta );
+            }
+            catch ( \Exception $e ) {
+                $this->error_handler->set_error(
+                    'Unable to create the term meta attribute. Error: ' . $e->getMessage(),
+                    $e
+                );
+            }
+            return null;
+        }, $meta_data ) );
     }
 
     /**
-     * Validate a term importable.
+     * Import the term using the attached importer.
      *
-     * @return bool
+     * @return int|null The imported WP term id.
+     * @throws TypeException Thrown if the importable is of the wrong type.
      */
-    public function validate(): bool {
-        return empty( $this->error_handler->get_errors() );
-    }
-
     public function import(): ?int {
         if ( ! empty( $this->importer ) ) {
-            return $this->importer->import();
-        }
-
-        return null;
-    }
-
-    /**
-     * Saves the attribute with the saver if it is set.
-     *
-     * @return int|string|void|null
-     * @throws AttributeSaveException An error is thrown if the saving fails.
-     */
-    public function save() {
-        if ( ! empty( $this->saver ) ) {
-            return $this->saver->save( $this->importable, $this );
+            return $this->importer->import( $this, $this->error_handler );
         }
 
         return null;

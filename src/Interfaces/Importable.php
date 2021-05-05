@@ -6,7 +6,7 @@
 namespace Geniem\Oopi\Interfaces;
 
 /**
- * Interface Importable
+ * Importable
  *
  * @property mixed  $data    The importable data.
  * @property string $oopi_id The OOPI id.
@@ -23,14 +23,11 @@ interface Importable {
      * @param Importer|null     $importer      The importer.
      * @param ErrorHandler|null $error_handler An optional error handler.
      */
-    public function __construct( string $oopi_id, ?Importer $importer = null, ?ErrorHandler $error_handler = null );
-
-    /**
-     * Setter for data.
-     *
-     * @param mixed $data The data.
-     */
-    public function set_data( $data );
+    public function __construct(
+        string $oopi_id,
+        ?Importer $importer = null,
+        ?ErrorHandler $error_handler = null
+    );
 
     /**
      * Getter for OOPI id.
@@ -45,13 +42,6 @@ interface Importable {
      * @return int|null
      */
     public function get_wp_id() : ?int;
-
-    /**
-     * Validates an importable.
-     *
-     * @return bool True on success, false on error.
-     */
-    public function validate() : bool;
 
     /**
      * Getter for the importer.
@@ -73,6 +63,13 @@ interface Importable {
      * @return bool
      */
     public function is_imported() : bool;
+
+    /**
+     * Validates an importable.
+     *
+     * @return bool True on success, false on error.
+     */
+    public function validate() : bool;
 
     /**
      * Import the importable with the attached importer.
