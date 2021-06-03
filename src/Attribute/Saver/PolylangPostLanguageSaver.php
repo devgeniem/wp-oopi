@@ -6,6 +6,7 @@
 namespace Geniem\Oopi\Attribute\Saver;
 
 use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Importable\AttachmentImportable;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
@@ -21,6 +22,16 @@ use Geniem\Oopi\Storage;
 class PolylangPostLanguageSaver implements AttributeSaver {
 
     /**
+     * This saver can handle these importable types.
+     *
+     * @var string[]
+     */
+    protected $allowed_types = [
+        PostImportable::class,
+        AttachmentImportable::class,
+    ];
+
+    /**
      * Saves the Polylang localisation data for a post importable.
      *
      * @param Importable $importable A save operation is always related to an importable.
@@ -29,7 +40,8 @@ class PolylangPostLanguageSaver implements AttributeSaver {
      * @return int|string|void
      */
     public function save( Importable $importable, Attribute $attribute ) {
-        if ( ! $importable instanceof PostImportable ) {
+        var_dump(get_class( $importable ));
+        if ( ! in_array( get_class( $importable ), $this->allowed_types, true ) ) {
             $importable->get_error_handler()->set_error(
                 'Unable to save post localization for an object of type: ' . get_class( $importable )
             );

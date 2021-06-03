@@ -7,6 +7,8 @@ namespace Geniem\Oopi\Importer;
 
 use Exception;
 use Geniem\Oopi\Attribute\Meta;
+use Geniem\Oopi\Attribute\PostThumbnail;
+use Geniem\Oopi\Exception\AttributeException;
 use Geniem\Oopi\Exception\LanguageException;
 use Geniem\Oopi\Exception\PostException as PostException;
 use Geniem\Oopi\Exception\RollbackException;
@@ -206,6 +208,11 @@ class PostImporter implements Importer {
             $this->import_attachments();
         }
 
+        // Save the thumbnail.
+        if ( ! empty( $this->importable->get_thumbnail() ) ) {
+            $this->save_thumbnail();
+        }
+
         // Save metadata.
         if ( ! empty( $this->importable->get_meta() ) ) {
             $this->save_meta();
@@ -269,9 +276,23 @@ class PostImporter implements Importer {
      * Saves the attachments of the post.
      */
     protected function import_attachments() {
-        $attachments = $this->importable->get_attachments();
-        array_walk( $attachments, function( AttachmentImportable $importable ) {
-            $importable->import();
+        $attachments     = $this->importable->get_attachments();
+        $post_importable = $this->importable;
+
+        array_walk( $attachments, function( AttachmentImportable $attachment ) use ( $post_importable ) {
+            $attachment->import();
+
+            // Attach the thumbnail if attachment is marked as such.
+            if ( $attachment->is_thumbnail() ) {
+                try {
+                    ( new PostThumbnail( $post_importable, $attachment ) )->save();
+                }
+                catch ( AttributeException $e ) {
+                    $this->error_handler->set_error(
+                        'An error occurred while saving the post thumbnail. Error: ' . $e->getMessage(),
+                    );
+                }
+            }
         } );
 
         // Done saving.
@@ -340,7 +361,7 @@ class PostImporter implements Importer {
             try {
                 $field_attribute->save();
             }
-            catch ( AttributeSaveException $exception ) {
+            catch ( \Exception $exception ) {
                 $this->error_handler->set_error(
                     $exception->getMessage(),
                     $exception
@@ -360,6 +381,18 @@ class PostImporter implements Importer {
             $this->importable->get_language()->save();
         }
         catch ( LanguageException $e ) {
+            $this->error_handler->set_error( $e->getMessage(), $e );
+        }
+    }
+
+    /**
+     * Save the post thumbnail.
+     */
+    protected function save_thumbnail() {
+        try {
+            $this->importable->get_thumbnail()->save();
+        }
+        catch ( AttributeException $e ) {
             $this->error_handler->set_error( $e->getMessage(), $e );
         }
     }

@@ -206,4 +206,5 @@ class PolylangUtil {
     public static function language_exists( string $locale ) : bool {
         return in_array( $locale, pll_languages_list(), true );
     }
+
 }

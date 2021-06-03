@@ -10,6 +10,8 @@ use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
 use Geniem\Oopi\OopiErrorHandler;
+use Geniem\Oopi\Storage;
+use Geniem\Oopi\Traits\HasPost;
 use Geniem\Oopi\Traits\HasPostMeta;
 use Geniem\Oopi\Traits\ImportableBase;
 use Geniem\Oopi\Traits\Translatable;
@@ -30,6 +32,11 @@ class AttachmentImportable implements Importable {
      * Use basic functionalities.
      */
     use ImportableBase;
+
+    /**
+     * Use the WP post property.
+     */
+    use HasPost;
 
     /**
      * Attachments can have post meta.
@@ -77,6 +84,49 @@ class AttachmentImportable implements Importable {
     protected string $description = '';
 
     /**
+     * Holds the attachment's parent's WP id.
+     *
+     * @var int|null
+     */
+    protected $parent_wp_id = null;
+
+    /**
+     * Holds the attachment's parent's OOPI id.
+     *
+     * @var string
+     */
+    protected $parent_oopi_id = '';
+
+    /**
+     * Defines whether this file should be treated as the post thumbnail or not.
+     *
+     * @var bool
+     */
+    protected $is_thumbnail = false;
+
+    /**
+     * Is this the thumbnail for the importable?
+     *
+     * @return bool
+     */
+    public function is_thumbnail(): bool {
+        return $this->is_thumbnail;
+    }
+
+    /**
+     * Set true to mark this attachment as the post thumbnail.
+     *
+     * @param bool $is_thumbnail The is_thumbnail.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
+     */
+    public function set_is_thumbnail( ?bool $is_thumbnail ): AttachmentImportable {
+        $this->is_thumbnail = $is_thumbnail;
+
+        return $this;
+    }
+
+    /**
      * Post constructor.
      *
      * @param string            $oopi_id       A unique id for the importable.
@@ -91,6 +141,18 @@ class AttachmentImportable implements Importable {
         $this->oopi_id       = $oopi_id;
         $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
         $this->importer      = $importer ?? new AttachmentImporter();
+
+        $wp_id = Storage::get_post_id_by_oopi_id( $oopi_id );
+        if ( $wp_id ) {
+            // Fetch and set the existing post object.
+            $this->set_post( get_post( $wp_id ) );
+        }
+        else {
+            // Initialize the empty post object.
+            $this->set_post(
+                new \WP_Post( [ 'post_type' => 'attachment' ] )
+            );
+        }
     }
 
     /**
@@ -201,5 +263,56 @@ class AttachmentImportable implements Importable {
      */
     public function get_title(): string {
         return $this->title;
+    }
+
+    /**
+     * Getter for the post name in the set post data.
+     *
+     * @return string
+     */
+    public function get_post_name() {
+        return $this->post->post_name ?? '';
+    }
+
+    /**
+     * Get the attachment's parents' WP id.
+     * Returns 0 if the attachment is not attached to any parent.
+     *
+     * @return int
+     */
+    public function get_parent_wp_id(): int {
+        if ( $this->parent_wp_id !== null ) {
+            return $this->parent_wp_id;
+        }
+        if ( $this->parent_oopi_id ) {
+            return Storage::get_post_id_by_oopi_id( $this->parent_oopi_id ) ?: 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Set the parent's WP id for the attachment.
+     *
+     * @param int|null $parent_wp_id The parent WP id.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
+     */
+    public function set_parent_wp_id( int $parent_wp_id ) : AttachmentImportable {
+        $this->parent_wp_id = $parent_wp_id;
+
+        return $this;
+    }
+
+    /**
+     * Set the parent's OOPI id for the attachment.
+     *
+     * @param string $parent_oopi_id The parent's OOPI id.
+     *
+     * @return AttachmentImportable Return self to enable chaining.
+     */
+    public function set_parent_oopi_id( string $parent_oopi_id ): AttachmentImportable {
+        $this->parent_oopi_id = $parent_oopi_id;
+
+        return $this;
     }
 }

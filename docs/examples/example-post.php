@@ -32,14 +32,18 @@ $post->set_post( new WP_Post(
 $post->set_attachments(
     [
         [
-            'oopi_id'     => '123456',
-            'filename'    => '123456.png',
-            'mime_type'   => 'image/png',
-            'alt'         => 'Alt text is stored in postmeta.',
-            'caption'     => 'This is the post excerpt.',
-            'description' => 'This is the post content.',
-            'src'         =>
+            'oopi_id'      => '123456',
+            'filename'     => '123456.png',
+            'mime_type'    => 'image/png',
+            'alt'          => 'Alt text is stored in postmeta.',
+            'caption'      => 'This is the post excerpt.',
+            'description'  => 'This is the post content.',
+            'is_thumbnail' => true, // Mark this as the post thumbnail.
+            'src'          =>
                 'https://cloud.githubusercontent.com/assets/5691777/14319886/9ae46166-fc1b-11e5-9630-d60aa3dc4f9e.png',
+            'language'     => [
+                'locale' => 'en',
+            ],
         ],
     ]
 );
@@ -80,21 +84,21 @@ $post->set_terms(
     ]
 );
 
-// Advanced Custom Fields data.
-$post->set_acf(
-    [
-        [
-            'key'   => 'single_field_key',
-            'value' => 'single value',
-        ],
-        [
-            // For ACF images the value should be the OOPi id for referencing the correct attachment object.
-            'key'   => 'attachment_field_key',
-            'value' => '123456', // This is the OOPI id of the attachment.
-            'type'  => 'image', // Note the different type.
-        ],
-    ]
-);
+// Uncomment if you have ACF activated and want to test field saving.
+//$post->set_acf(
+//    [
+//        [
+//            'key'   => 'single_field_key',
+//            'value' => 'single value',
+//        ],
+//        [
+//            // For ACF images the value should be the OOPi id for referencing the correct attachment object.
+//            'key'   => 'attachment_field_key',
+//            'value' => '123456', // This is the OOPI id of the attachment.
+//            'type'  => 'image', // Note the different type.
+//        ],
+//    ]
+//);
 
 // Try to save the post.
 try {

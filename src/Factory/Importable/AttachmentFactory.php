@@ -3,7 +3,7 @@
  * A factory class for statically creating importable attachment objects.
  */
 
-namespace Geniem\Oopi\Factory;
+namespace Geniem\Oopi\Factory\Importable;
 
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Importable\AttachmentImportable;
@@ -14,7 +14,7 @@ use Geniem\Oopi\Util;
 /**
  * Class AttachmentImportableFactory
  *
- * @package Geniem\Oopi\Factory
+ * @package Geniem\Oopi\Factory\Importable
  */
 class AttachmentFactory implements ImportableFactory {
 
@@ -32,12 +32,16 @@ class AttachmentFactory implements ImportableFactory {
 
         $importable = new AttachmentImportable( $oopi_id, $importer, $error_handler );
 
-        $src         = Util::get_prop( $data, 'src', null );
-        $title       = Util::get_prop( $data, 'title', null );
-        $alt         = Util::get_prop( $data, 'alt', null );
-        $caption     = Util::get_prop( $data, 'caption', null );
-        $description = Util::get_prop( $data, 'description', null );
-        $meta        = Util::get_prop( $data, 'meta', null );
+        $src            = Util::get_prop( $data, 'src', null );
+        $title          = Util::get_prop( $data, 'title', null );
+        $alt            = Util::get_prop( $data, 'alt', null );
+        $caption        = Util::get_prop( $data, 'caption', null );
+        $description    = Util::get_prop( $data, 'description', null );
+        $parent_wp_id   = Util::get_prop( $data, 'parent_wp_id', null );
+        $parent_oopi_id = Util::get_prop( $data, 'parent_oopi_id', null );
+        $is_thumbnail   = Util::get_prop( $data, 'is_thumbnail', false );
+        $meta           = Util::get_prop( $data, 'meta', null );
+        $language       = Util::get_prop( $data, 'language', null );
 
         if ( $title ) {
             $importable->set_title( $title );
@@ -58,6 +62,17 @@ class AttachmentFactory implements ImportableFactory {
         if ( $description ) {
             $importable->set_description( $description );
         }
+
+        if ( $parent_wp_id ) {
+            $importable->set_parent_wp_id( $parent_wp_id );
+        }
+
+        if ( $parent_oopi_id ) {
+            $importable->set_parent_oopi_id( $parent_oopi_id );
+        }
+
+        // Defaults to false.
+        $importable->set_is_thumbnail( $is_thumbnail );
 
         if ( is_array( $meta ) ) {
             try {

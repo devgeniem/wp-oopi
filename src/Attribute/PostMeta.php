@@ -19,11 +19,6 @@ use Geniem\Oopi\Interfaces\AttributeSaver;
 class PostMeta extends Meta {
 
     /**
-     * Error scope.
-     */
-    const ESCOPE = 'post_meta';
-
-    /**
      * PostMeta constructor.
      *
      * @param Importable          $importable The importable.

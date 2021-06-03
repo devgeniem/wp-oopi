@@ -66,52 +66,67 @@ class AttachmentImporter implements Importer {
         // Filter the post id before trying to upload the file.
         $attachment_post_id = apply_filters( 'oopi_attachment_post_id', $attachment_post_id, $importable );
 
-        // If this is a translatable attachment and the main attachment
-        // is already uploaded, use the same file and insert the attachment.
-        // TODO: check if the attachment actually exists!
-        if ( ! $attachment_post_id && $attachment_language && $attachment_language->get_main_oopi_id() ) {
-            $attachment_post_id = $this->copy_attachment_from_main_language(
-                $importable,
-                $error_handler
-            );
-            // Something went wrong.
-            if ( ! $attachment_post_id ) {
-                $error_handler->set_error(
-                    'Copying the file from the main translation of the attachment failed.',
-                    $importable
-                );
-                return null;
-            }
-            $updated = true;
-        }
-
         // Check if the attachment doesn't exists, and upload it.
         if ( ! $attachment_post_id ) {
 
-            // Insert upload attachment from url
-            $upload = $this->insert_attachment_from_url(
-                $attachment_src,
-                $error_handler
-            );
+            // If this is a translatable attachment and the main attachment
+            // is already uploaded, use the same file and insert the attachment.
+            if (
+                ! $attachment_post_id &&
+                $attachment_language &&
+                $attachment_language->get_main_oopi_id()
+            ) {
+                $attachment_post_id = $this->copy_attachment_from_main_language(
+                    $importable,
+                    $error_handler
+                );
 
-            // Something went wrong.
-            if ( ! empty( $upload['error'] ) ) {
-                $error_handler->set_error( 'An error occurred uploading the file : ' . $attachment_post_id, $upload );
-                return null;
+                // Something went wrong.
+                if ( ! $attachment_post_id ) {
+                    $error_handler->set_error(
+                        'Copying the file from the main translation of the attachment failed.',
+                        $importable
+                    );
+                    return null;
+                }
             }
+            else {
+                // Insert upload attachment from url
+                $upload = $this->insert_attachment_from_url(
+                    $attachment_src,
+                    $error_handler
+                );
 
-            $attachment_post_id = $this->insert_attachment(
-                $upload['file'],
-                $upload['url'],
-                $importable,
-                $error_handler
-            );
+                // Something went wrong.
+                if ( ! empty( $upload['error'] ) ) {
+                    $error_handler->set_error(
+                        'An error occurred uploading the file : ' . $attachment_post_id, $upload
+                    );
+                    return null;
+                }
 
-            if ( $attachment_post_id === null ) {
-                return null;
+                $attachment_post_id = $this->insert_attachment(
+                    $upload['file'],
+                    $upload['url'],
+                    $error_handler,
+                    $importable->get_parent_wp_id()
+                );
+
+                if ( $attachment_post_id === null ) {
+                    return null;
+                }
             }
-
-            $updated = true;
+        }
+        else {
+            // Update attachment info.
+            $attachment_args = [
+                'ID'           => $attachment_post_id,
+                'post_title'   => $title,
+                'post_content' => $description,
+                'post_excerpt' => $caption,
+                'post_parent'  => $importable->get_parent_wp_id(),
+            ];
+            wp_update_post( $attachment_args );
         }
 
         // Ensure identification.
@@ -125,19 +140,6 @@ class AttachmentImporter implements Importer {
             catch ( LanguageException $e ) {
                 $error_handler->set_error( $e->getMessage(), $e );
             }
-        }
-
-        // Update attachment info.
-        if ( ! $updated ) {
-            $attachment_args = [
-                'ID'           => $attachment_post_id,
-                'post_title'   => $title,
-                'post_content' => $description,
-                'post_excerpt' => $caption,
-            ];
-
-            // Save the attachment post object data
-            wp_update_post( $attachment_args );
         }
 
         // If alt was empty, use caption as an alternative text.
@@ -184,8 +186,8 @@ class AttachmentImporter implements Importer {
             $attachment_post_id = $this->insert_attachment(
                 $main_file,
                 $main_post->guid,
-                $importable,
-                $error_handler
+                $error_handler,
+                $importable->get_parent_wp_id()
             );
 
             return $attachment_post_id;
@@ -328,32 +330,32 @@ class AttachmentImporter implements Importer {
     /**
      * Creates the attachment and returns the created post id.
      *
-     * @param string               $file_path     The file path.
-     * @param string               $file_url      The WP file url to use as the GUID.
-     * @param AttachmentImportable $importable    The attachment to import.
-     * @param ErrorHandler         $error_handler The error handler.
+     * @param string       $file_path     The file path.
+     * @param string       $file_url      The WP file url to use as the GUID.
+     * @param ErrorHandler $error_handler The error handler.
+     * @param int|null     $parent_wp_id  The parent post id to attach to.
      *
      * @return int|null
      */
     protected function insert_attachment(
         string $file_path,
         string $file_url,
-        AttachmentImportable $importable,
-        ErrorHandler $error_handler
+        ErrorHandler $error_handler,
+        ?int $parent_wp_id = 0
     ) : ?int {
         $file_type = wp_check_filetype( $file_path, null );
 
         $post_info = [
             'guid'           => $file_url,
             'post_mime_type' => $file_type['type'],
-            'post_title'     => $importable->get_title(),
-            'post_content'   => $importable->get_description(),
-            'post_excerpt'   => $importable->get_caption(),
+            'post_title'     => $parent->get_title(),
+            'post_content'   => $parent->get_description(),
+            'post_excerpt'   => $parent->get_caption(),
             'post_status'    => 'inherit',
         ];
 
         // Insert attachment into WP.
-        $attachment_id = wp_insert_attachment( $post_info, $file_path, $importable->get_wp_id(), true );
+        $attachment_id = wp_insert_attachment( $post_info, $file_path, $parent_wp_id, true );
 
         if ( $attachment_id instanceof WP_Error ) {
             $error_handler->set_error( $attachment_id->get_error_message(), $attachment_id );

@@ -11,7 +11,7 @@ use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\Importable;
 
 /**
- * Class PostMetaAttributeSaver
+ * Class PostMetaSaver
  *
  * @package Geniem\Oopi\Attribute\Saver
  */

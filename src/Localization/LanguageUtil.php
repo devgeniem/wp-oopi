@@ -7,6 +7,7 @@ namespace Geniem\Oopi\Localization;
 
 use Geniem\Oopi\Attribute\Saver\PolylangPostLanguageSaver;
 use Geniem\Oopi\Attribute\Saver\PolylangTermLanguageSaver;
+use Geniem\Oopi\Importable\AttachmentImportable;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\AttributeSaver;
@@ -101,6 +102,7 @@ class LanguageUtil {
     ) : ?AttributeSaver {
         switch ( get_class( $importable ) ) {
             case PostImportable::class:
+            case AttachmentImportable::class:
                 return self::post_language_saver_factory( $active_plugin );
             case TermImportable::class:
                 return self::term_language_saver_factory( $active_plugin );

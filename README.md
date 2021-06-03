@@ -18,45 +18,44 @@ Then activate the plugin from the WordPress dashboard or with the WP-CLI.
 wp plugin activate wp-oopi
 ```
 
-## Importing post objects
+## Importing posts
 
-The plugin provides a functional API for importing various data types. You can think of the importer as an integration layer between your custom data source and the WordPress database. Your job is to format the data to meet the importer object specification. If you are lucky and your external data source can provide the data in the importer data format, your job is as simple as decoding the data into a PHP object and then passing it through the API.
+The plugin provides functionalities for importing various data types. You can think of the importer as an integration layer between your custom data source and the WordPress database. Your job is to format the data to meet the importer object specification. If you are lucky and your external data source can provide the data in the importer data format, your job is as simple as decoding the data into a PHP object and then passing it through OOPI.
 
-An import is a two step process. First you must set the data for the importer `\Geniem\Oopi\Post` object instance and then you call its save method to store the object data into the WordPress database.
+An import is a two step process. First step is to create an importable object. If it is a post you are importing, then you create a `\Geniem\Oopi\Importable\PostImportable` object. The easiest way to do this is to use the `\Geniem\Oopi\Factory\Importable\PostFactory::create()` method. This factory method takes the a unique OOPI id and a full importer object as a parameter, validates all fields and converts the data into strictly typed objects. The OOPI id is stored in (post) meta and it is used to identify your imported object after it is initially created. Subsequent imports with the same OOPI id will update the matching post.
 
-An example of importing a single post can be found [here](docs/examples/example-post.php).
+After creating your importable, the next step is to pass it to the corresponding importer's `import()` method. For a post importable, the class to instantiate an importer from is `\Geniem\Oopi\Importer\PostImporter`. The `import()` method will handle saving all the data attached to the importable object into WordPress database.
 
-### \Geniem\Oopi\Post - Methods
+An example of importing a single post can be found [here](./docs/examples/example-post.php).
 
-#### __construct() `public`
+## Importing terms
 
-To start a new import process call the Post class constructor and pass a unique id for it. This creates a new instance of the class and identifies it. If this is an update, the WP post matching the id is fetched and the post object data is loaded as default values for the import. *To ensure the time values are updating they are unset from the post object at this point.*
+TODO
 
-##### Parameters
+## Importing attachments
 
-- `$oopi_id` *(string) (Required)* An id uniquely identifies the object in the external data source.
+TODO
 
-##### Example usage
+## Class documentation
 
-```php
-$post = new \Geniem\Oopi\Post( 'my_id_1234' );
-```
+### `PostFactory`
 
-#### set_data() `public`
-The first step in the import process is to set the data for the importer. This funtion takes a full importer object as a parameter, validates all fields and sets the data into the corresponding class properties. To check if the data is valid after setting it, you can call the `get_errors()` which will return an array of occurred errors.
+#### `::create( $oopi_id, $data )`
 
-##### Parameters
-
-- `$raw_post` *(object) (Required)* An object containing needed `\Geniem\Oopi\Post` class properties.
+- `$oopi_id` *(string) (Required)* The unique external identifier for your importable.
+- `$data` *(array|object) (Required)* An array/object containing the following keys:
   - `post` *(object) (Required)* The basic [WP post](https://codex.wordpress.org/Class_Reference/WP_Post) object data as a `stdClass` object.
   - `attachments` *(array) (Optional)* An array of attachment objects containing:
-    - `id` *(string) (Required)* An unique id identifying the object in the external data source.
+    - `oopi_id` *(string) (Required)* An unique id identifying the object in the external data source.
     - `src` *(string) (Required)* The source from which to upload the image into WordPress.
       - *The plugin currently supports only image files!*
     - `alt` *(string) (Optional)* The alt text for the image. This is saved into postmeta.
     - `caption` *(string) (Optional)* The file caption text.
     - `description` *(string) (Optional)* The file description text.
-  - `meta` *(object) (Optional)* An object where all the keys correspond to meta keys and values correspond to meta values.
+    - `is_thumbnail` *(bool) (Optional)* Defines if the attachment should set as the post thumbnail.
+  - `meta` *(array) (Optional)* An array of arrays or objects containing:
+    - `key` *(string) (Required)* The meta key.
+    - `value` *(mixed) (Required)* The meta value.
   - `terms` *(array) (Optional)* An array containing either-or:
     - *(Geniem\Oopi\Term)* OOPI Term object.
       - _If the OOPI term holds a WP_Term object, importing will override existing term data._
@@ -69,7 +68,7 @@ The first step in the import process is to set the data for the importer. This f
     - `type` *(string) (Required)* The ACF field type ([types](https://www.advancedcustomfields.com/resources/#field-types)).
     - `key` *(string) (Required)* The ACF field key. This must be the unique key defined for the field.
     - `value` *(mixed) (Required)* The data value matching the field type specifications.
-  - `language` *(Geniem\Oopi\Language|object|array) (Optional)* Localization information in an OOPI Language object or raw data. Raw data will be converted into a Language instance.
+  - `language` *(Geniem\Oopi\Attribute\Language|object|array) (Optional)* Localization information in an OOPI Language object or raw data. Raw data will be converted into a Language instance.
 
 #### Example usage
 
@@ -84,14 +83,20 @@ See [the example post](./docs/examples/example-post.php).
     "post_content": "This is a new post and it is awesome!",
     "post_excerpt": "This is a new post..."
   },
-  "meta": {
-    "my_meta_key": "My meta value.",
-    "my_meta_key2": 1234
-  },
+  "meta": [
+    {
+        "key": "my_meta_key", 
+        "value": "My meta value."
+    },
+    {
+        "key": "my_meta_key2", 
+        "value": 1234
+    },
+  ],
   "attachments": [
     {
       "mime_type": "image/jpg",
-      "id": "123456",
+      "oopi_id": "123456",
       "alt": "Alt text is stored in postmeta.",
       "caption": "This is the post excerpt.",
       "description": "This is the post content.",
@@ -107,14 +112,6 @@ See [the example post](./docs/examples/example-post.php).
   ],
 }
 ```
-
-#### save() `public`
-
-Run this function after setting the data for the importer object. This function saves all set data into WordPress database. Before any data is stored into the database the current `Post` object is validated and it throws an `Geniem\Oopi\Exception\PostException` if any errors have occurred. After all data is saved into the database the instance is validated again and any save errors throw the same expection. If no errors occurred, the WordPress post id is returned.
-
-##### Parameters
-
-- `$force_save` *(boolean) (Optional)* Set this to `true` to skip validation and force saving. You can create custom validations through multiple hooks or by manually inspecting error with by getting them with the `get_errors()` function. Defaults to `false`.
 
 ## Plugin settings
 
@@ -156,11 +153,17 @@ See `\Geniem\Oopi\Post::insert_attachment_from_url`.
 
 ## Logging
 
+### Error log
+
+OOPI uses a generalized error handling. You can customize the error handling process by overriding the default error handler. To do so, create a class implementing the `Geniem\Oopi\Interfaces\ErrorHandler` interface and override the default handler instance with your instance by passing it for factories or class constructors.
+
+### Import log
+
 The plugin creates a custom table into the WordPress database called `oopi_log`. This table holds log entries of all import actions and contains the following columns:
 
 - `id` Log entry id.
 - `oopi_id` The importer object id.
-- `post_id` The WordPress post id of the importer object. Stored only if the `save()` is run successfully.
+- `wp_id` The WordPress post id of the importer object. Stored only if the `save()` is run successfully.
 - `import_date_gmt` A GMT timestamp of the import date in MySQL datetime format.
 - `data` The importer object data containing all properties including errors.
 - `status` The import status: `OK|FAIL`.
