@@ -5,6 +5,7 @@
 
 use Geniem\Oopi\Attribute\Language;
 use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 
 // The unique id for the post.
 $oopi_id = 'my_custom_id_1234';
@@ -51,7 +52,7 @@ $post->set_meta(
 );
 
 // Create a category term.
-$oopi_term = new Term( 'my-translated-term' );
+$oopi_term = new TermImportable( 'my-translated-term' );
 $oopi_term->set_data(
     [
         'slug'     => 'my-translated-term',
@@ -63,7 +64,7 @@ $oopi_term->set_data(
 // In this case 'my-original-term' would be the Oopi id
 // of the previously imported term in the main language.
 // The term's slug must be unique.
-$oopi_term->set_language( new Language( 'en', 'my-original-term' ) );
+$oopi_term->set_language( new Language( $oopi_term, 'en', 'my-original-term' ) );
 
 // Set the term into the array.
 $post->set_taxonomies(
