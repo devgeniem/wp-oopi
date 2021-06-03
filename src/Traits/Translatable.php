@@ -18,18 +18,18 @@ use Geniem\Oopi\Util;
 trait Translatable {
 
     /**
-     * The language data.
+     * The language data instance.
      *
-     * @var Language
+     * @var Language|null
      */
-    protected Language $language;
+    protected ?Language $language = null;
 
     /**
      * Get the language.
      *
-     * @return Language
+     * @return Language|null
      */
-    public function get_language() : Language {
+    public function get_language() : ?Language {
         return $this->language;
     }
 

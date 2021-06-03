@@ -43,7 +43,6 @@ class AttachmentImporter implements Importer {
 
         $error_handler = $error_handler ?? $importable->get_error_handler();
 
-
         $updated            = false;
         $oopi_id            = $importable->get_oopi_id();
         $attachment_src     = $importable->get_src();
@@ -69,6 +68,7 @@ class AttachmentImporter implements Importer {
 
         // If this is a translatable attachment and the main attachment
         // is already uploaded, use the same file and insert the attachment.
+        // TODO: check if the attachment actually exists!
         if ( ! $attachment_post_id && $attachment_language && $attachment_language->get_main_oopi_id() ) {
             $attachment_post_id = $this->copy_attachment_from_main_language(
                 $importable,

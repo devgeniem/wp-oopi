@@ -31,7 +31,7 @@ class Language implements Attribute {
      *
      * @var string|null Should be null if this is in the default language.
      */
-    protected ?string $main_oopi_id;
+    protected ?string $main_oopi_id = null;
 
     /**
      * The locale.
@@ -107,9 +107,9 @@ class Language implements Attribute {
     /**
      * Get the main object's OOPI id.
      *
-     * @return string
+     * @return string|null
      */
-    public function get_main_oopi_id() : string {
+    public function get_main_oopi_id() : ?string {
         return $this->main_oopi_id;
     }
 

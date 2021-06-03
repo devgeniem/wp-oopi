@@ -30,6 +30,7 @@ class AcfFieldSaver implements AttributeSaver {
      * @param Attribute  $attribute  A save operation is always related to an attribute.
      *
      * @return mixed|null Boolean containing the field update return value, null otherwise.
+     * @throws TypeException
      */
     public function save( Importable $importable, Attribute $attribute ) {
         // Bail if ACF is not activated.
@@ -58,39 +59,31 @@ class AcfFieldSaver implements AttributeSaver {
      * @param AcfField       $field The ACF field attribute.
      *
      * @return bool
-     *@throws AttributeSaveException Thrown if an error occurs.
      */
     protected function save_post_acf( PostImportable $post, AcfField $field ) {
         $value = $field->get_value();
         $key   = $field->get_key();
 
         switch ( $field->get_type() ) {
-            case 'taxonomy':
+            case 'term':
                 $terms = [];
                 foreach ( $field->get_value() as $term ) {
                     if ( ! $term instanceof TermImportable ) {
                         $term = TermFactory::create( Util::get_prop( $term, 'oopi_id' ), $term );
                     }
 
-                    // TODO: remove term creation from this method. Terms should be created before saving attributes.
-                    // If the term does not exist, create it.
-                    if ( ! $term->get_term() ) {
-                        try {
-                            $term_id = $term->import();
-                            if ( ! $term_id ) {
-                                $post->get_error_handler()->set_error(
-                                    "An error occurred creating the missing term for the ACF field: $key."
-                                );
-                                continue;
-                            }
-                        }
-                        catch ( TypeException $e ) {
-                            $post->get_error_handler()->set_error( $e->getMessage(), $e );
-                            continue;
-                        }
-                    }
+                    // Try to get the WP id of the term importable.
+                    $term_id = $term->get_wp_id() ?? Storage::get_term_id_by_oopi_id( $term->get_oopi_id() );
 
-                    $terms[] = $term->get_wp_id();
+                    if ( $term_id ) {
+                        $terms[] = $term_id;
+                    }
+                    else {
+                        $post->get_error_handler()->set_error(
+                            'Unable to set the ACF term field id. No WP id found for the given term importable.',
+                            $term
+                        );
+                    }
                 }
                 if ( count( $terms ) ) {
                     return update_field( $key, $terms, $post->get_wp_id() );
@@ -104,16 +97,15 @@ class AcfFieldSaver implements AttributeSaver {
                     return update_field( $key, $attachment_post_id, $post->get_wp_id() );
                 }
                 else {
-                    // TODO: change to error handler.
-                    throw new AttributeSaveException(
-                        "Trying to set an image in an ACF field that does not exists.
-                        Field key: $key. Attachment OOPI id: $value."
+                    $post->get_error_handler()->set_error(
+                        "Trying to set an image in an ACF field for a non-existent attachment.
+                        Field key: $key. Attachment OOPI id: $value.",
+                        [ $key => $value ]
                     );
                 }
+                break;
 
             default:
-                // TODO: Test which field types require no extra logic.
-                // Currently tested: 'select'
                 return update_field( $key, $value, $post->get_wp_id() );
         }
 
@@ -126,10 +118,9 @@ class AcfFieldSaver implements AttributeSaver {
      * @param TermImportable $term  The term importable.
      * @param AcfField       $field The ACF field attribute.
      *
-     * @throws AttributeSaveException Thrown if an error occurs.
+     * @throws TypeException Thrown if an error occurs.
      */
     protected function save_term_acf( TermImportable $term, AcfField $field ) {
-        // TODO: implement!
-        throw new AttributeSaveException( 'Term field saving not implemented.' );
+        throw new TypeException( 'The ACF field saver does not contain an implementation for a term importable.' );
     }
 }

@@ -6,6 +6,7 @@
 namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\AcfField;
+use Geniem\Oopi\Factory\AttachmentFactory;
 use Geniem\Oopi\Factory\Attribute\AcfFieldFactory;
 use Geniem\Oopi\Importer\PostImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
@@ -49,27 +50,6 @@ class PostImportable implements Importable {
      * Use the language attribute.
      */
     use Translatable;
-
-    /**
-     * A unique id for external identification.
-     *
-     * @var string
-     */
-    protected string $oopi_id;
-
-    /**
-     * The error handler.
-     *
-     * @var ErrorHandler
-     */
-    protected ErrorHandler $error_handler;
-
-    /**
-     * If this is an existing posts, the WP id is stored here.
-     *
-     * @var int|null
-     */
-    protected ?int $wp_id;
 
     /**
      * An object resembling the WP_Post class instance.
@@ -196,8 +176,9 @@ class PostImportable implements Importable {
         // Set the Importer id.
         $this->oopi_id = $oopi_id;
         // Fetch the WP post id, if it exists.
-        $this->set_wp_id( Storage::get_post_id_by_oopi_id( $oopi_id ) ?: null );
-        if ( $this->wp_id ) {
+        $wp_id = Storage::get_post_id_by_oopi_id( $oopi_id );
+        if ( $wp_id ) {
+            $this->set_wp_id( $wp_id );
             // Fetch the existing WP post object.
             $this->post = get_post( $this->wp_id );
             // Unset the time values to ensure updates.
@@ -215,10 +196,21 @@ class PostImportable implements Importable {
      * @return WP_Post Post object.
      */
     public function set_post( WP_Post $post_obj ) {
-        // Set the WP id.
-        $this->set_wp_id( $this->post->ID );
+        // Hold onto the current id.
+        $current_id = $this->get_wp_id();
+
+        // Set the WP id if found and none is set.
+        if ( ! $current_id && $post_obj->ID ) {
+            $this->set_wp_id( $post_obj->ID );
+        }
+
         // Set the post object.
         $this->post = new WP_Post( $post_obj );
+
+        if ( $current_id ) {
+            // Ensure the id is not changed.
+            $this->post->ID = $current_id;
+        }
 
         // Filter values before validating.
         foreach ( get_object_vars( $this->post ) as $attr => $value ) {
@@ -357,8 +349,25 @@ class PostImportable implements Importable {
      * @param array $attachments Attachment objects|arrays.
      */
     public function set_attachments( array $attachments ) {
-        // TODO: cast to attachment importables.
-        $this->attachments = $attachments;
+        $importables = array_map(
+            function( $attachment ) {
+                if ( $attachment instanceof AttachmentImportable ) {
+                    return $attachment;
+                }
+
+                $oopi_id = Util::get_prop( $attachment, 'oopi_id', null );
+
+                // Use the current error handler if none is set.
+                if ( ! Util::get_prop( $attachment, 'error_handler' ) ) {
+                    Util::set_prop( $attachment, 'error_handler', $this->get_error_handler() );
+                }
+
+                return AttachmentFactory::create( $oopi_id, $attachment );
+            },
+            $attachments
+        );
+
+        $this->attachments = $importables;
     }
 
     /**

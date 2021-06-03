@@ -43,18 +43,11 @@ class TermImportable implements Importable {
     use Translatable;
 
     /**
-     * A unique id for external identification.
-     *
-     * @var string
-     */
-    protected string $oopi_id;
-
-    /**
      * If this is an existing term, the term is loaded here.
      *
      * @var WP_Term|null
      */
-    protected ?WP_Term $term;
+    protected ?WP_Term $term = null;
 
     /**
      * The term slug.
@@ -89,7 +82,7 @@ class TermImportable implements Importable {
      *
      * @var string|null
      */
-    protected ?string $parent;
+    protected ?string $parent = null;
 
     /**
      * Metadata in an associative array.
@@ -97,13 +90,6 @@ class TermImportable implements Importable {
      * @var TermMeta[]
      */
     protected array $meta = [];
-
-    /**
-     * The error handler.
-     *
-     * @var ErrorHandler
-     */
-    private ErrorHandler $error_handler;
 
     /**
      * Term constructor.
@@ -120,6 +106,15 @@ class TermImportable implements Importable {
         $this->oopi_id       = $oopi_id;
         $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
         $this->importer      = $importer ?? new TermImporter();
+
+        $term_id = Storage::get_term_id_by_oopi_id( $this->oopi_id );
+
+        if ( $term_id ) {
+            $term = get_term( $term_id );
+            if ( $term instanceof WP_Term ) {
+                $this->set_term( get_term( $term_id ) );
+            }
+        }
     }
 
     /**
@@ -185,10 +180,20 @@ class TermImportable implements Importable {
      * @return TermImportable Return self to enable chaining.
      */
     public function set_term( ?WP_Term $term ) : TermImportable {
+        // Hold onto the current id.
+        $current_id = $this->get_wp_id();
+
         $this->term = $term;
 
-        // Set the WP id.
-        $this->set_wp_id( $term->term_id );
+        // Set the WP id if found.
+        if ( ! $current_id && $term->term_id ) {
+            $this->set_wp_id( $term->term_id );
+        }
+
+        // Ensure the id is not changed.
+        if ( $current_id ) {
+            $this->term->term_id = $current_id;
+        }
 
         // Set properties with WP term data.
         $this->set_name( $term->name );

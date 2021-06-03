@@ -56,8 +56,8 @@ class PolylangTermLanguageSaver implements AttributeSaver {
             return;
         }
 
-        // Set post locale.
-        \pll_set_post_language( $term_id, $locale );
+        // Set term locale.
+        \pll_set_term_language( $term_id, $locale );
 
         // If a term slug was set in the data and it doesn't match the database,
         // update term slug to allow PLL to handle unique slugs.
@@ -85,7 +85,7 @@ class PolylangTermLanguageSaver implements AttributeSaver {
             if ( $main_term_id ) {
 
                 // Get current translation.
-                $current_translations = \pll_get_post_translations( $main_term_id );
+                $current_translations = \pll_get_term_translations( $main_term_id );
 
                 // Set up new translations.
                 $new_translations = [
@@ -96,7 +96,7 @@ class PolylangTermLanguageSaver implements AttributeSaver {
                 $parsed_args = \wp_parse_args( $new_translations, $current_translations );
 
                 // Link translations.
-                \pll_save_post_translations( $parsed_args );
+                \pll_save_term_translations( $parsed_args );
             }
         }
     }

@@ -27,9 +27,9 @@ class AcfFieldFactory implements AttributeFactory {
      */
     public static function create( Importable $importable, $data ) : AcfField {
         $key   = Util::get_prop( $data, 'key' );
-        $type  = Util::get_prop( $data, 'type' );
         $value = Util::get_prop( $data, 'value' );
-        $saver = Util::get_prop( $data, 'saver', null );
+        $type  = Util::get_prop( $data, 'type', '' );
+        $saver = Util::get_prop( $data, 'saver' );
 
         return new AcfField( $importable, $key, $type, $value, $saver );
     }

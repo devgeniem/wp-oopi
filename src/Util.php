@@ -32,13 +32,13 @@ class Util {
      * A helper function for getting a property
      * from an object or an associative array.
      *
-     * @param array  $item    An object or an associative array.
-     * @param string $key     The item key we are trying to get.
-     * @param string $default A default value to be returned if the item was not found.
+     * @param object|array $item    An object or an associative array.
+     * @param string       $key     The item key we are trying to get.
+     * @param mixed        $default A default value to be returned if the item was not found.
      *
      * @return mixed
      */
-    public static function get_prop( $item = [], $key = '', $default = '' ) {
+    public static function get_prop( $item = [], $key = '', $default = null ) {
 
         if ( is_array( $item ) && isset( $item[ $key ] ) ) {
             return $item[ $key ];

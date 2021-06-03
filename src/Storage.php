@@ -56,6 +56,9 @@ class Storage {
      * @return int|boolean The found post id or 'false' for empty results.
      */
     public static function get_post_id_by_oopi_id( $id ) {
+        if ( ! $id ) {
+            return false;
+        }
         global $wpdb;
         // Concatenate the meta key.
         $post_meta_key = static::format_query_key( $id );

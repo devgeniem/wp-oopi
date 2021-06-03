@@ -29,7 +29,7 @@ trait ImportableBase {
      *
      * @var int|null
      */
-    protected ?int $wp_id;
+    protected ?int $wp_id = null;
 
     /**
      * The error handler.
@@ -53,7 +53,7 @@ trait ImportableBase {
      * @return int|null
      */
     public function get_wp_id() : ?int {
-        return $this->wp_id;
+        return $this->wp_id ?? null;
     }
 
     /**

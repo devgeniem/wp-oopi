@@ -102,6 +102,9 @@ class TermImporter implements Importer {
             $wp_term = get_term( $result['term_id'] );
             $this->importable->set_term( $wp_term );
         }
+        else { // phpcs:ignore
+            // phpcs:ignore TODO: should we handle term updates with wp_update_term()?
+        }
 
         // Identify the new term. Data is set only on firts run.
         $this->identify( $this->importable->get_oopi_id(), $wp_term->term_id );
@@ -139,7 +142,7 @@ class TermImporter implements Importer {
             [
                 'slug'        => $term->get_slug(),
                 'description' => $term->get_description(),
-                'parent'      => $parent_id,
+                'parent'      => $parent_id ?: 0,
             ]
         );
 

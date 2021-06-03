@@ -22,6 +22,7 @@ $post->set_post( new WP_Post(
     (object) [
         'post_title'   => 'The post title',
         'post_name'    => sanitize_title( 'The post title' ),
+        'post_type'    => 'post',
         'post_content' => 'The post main content HTML.',
         'post_excerpt' => 'The excerpt text of the post.',
     ]
@@ -31,13 +32,14 @@ $post->set_post( new WP_Post(
 $post->set_attachments(
     [
         [
-            'filename'    => '123456.jpg',
-            'mime_type'   => 'image/jpg',
-            'id'          => '123456',
+            'oopi_id'     => '123456',
+            'filename'    => '123456.png',
+            'mime_type'   => 'image/png',
             'alt'         => 'Alt text is stored in postmeta.',
             'caption'     => 'This is the post excerpt.',
             'description' => 'This is the post content.',
-            'src'         => 'http://upload-from-here.com/123456.jpg',
+            'src'         =>
+                'https://cloud.githubusercontent.com/assets/5691777/14319886/9ae46166-fc1b-11e5-9630-d60aa3dc4f9e.png',
         ],
     ]
 );
@@ -45,29 +47,34 @@ $post->set_attachments(
 // Postmeta data as key-value pairs.
 $post->set_meta(
     [
-        'key1'        => 'value1',
-        'another_key' => 'another_value',
-        'integer_key' => 123,
+        [
+            'key'   => 'key1',
+            'value' => 'value1',
+        ],
+        [
+            'key'   => 'another_key',
+            'value' => 'another_value',
+        ],
+        [
+            'key'   => 'integer_key',
+            'value' => 123,
+        ],
     ]
 );
 
 // Create a category term.
 $oopi_term = new TermImportable( 'my-translated-term' );
-$oopi_term->set_data(
-    [
-        'slug'     => 'my-translated-term',
-        'name'     => 'My translated term',
-        'taxonomy' => 'category',
-    ]
-);
-// Set the term language and set the master id.
-// In this case 'my-original-term' would be the Oopi id
+$oopi_term->set_slug( 'my-translated-term' )
+          ->set_name( 'My translated term' )
+          ->set_taxonomy( 'category' );
+
+// Set the term language and set the main id.
+// In this case 'default-language-term' would be the Oopi id
 // of the previously imported term in the main language.
-// The term's slug must be unique.
-$oopi_term->set_language( new Language( $oopi_term, 'en', 'my-original-term' ) );
+$oopi_term->set_language( new Language( $oopi_term, 'en', 'default-language-term' ) );
 
 // Set the term into the array.
-$post->set_taxonomies(
+$post->set_terms(
     [
         $oopi_term,
     ]
@@ -77,25 +84,14 @@ $post->set_taxonomies(
 $post->set_acf(
     [
         [
-            'key'   => 'repeater_field_key',
-            'value' => [
-                [
-                    'sub_field_key'         => '...',
-                    'another_sub_field_key' => '...',
-                ],
-                [
-                    'sub_field_key'         => '...',
-                    'another_sub_field_key' => '...',
-                ],
-            ],
-        ],
-        [
             'key'   => 'single_field_key',
-            'value' => '...',
+            'value' => 'single value',
         ],
         [
+            // For ACF images the value should be the OOPi id for referencing the correct attachment object.
             'key'   => 'attachment_field_key',
-            'value' => 'oopi_attachment_123456',
+            'value' => '123456', // This is the OOPI id of the attachment.
+            'type'  => 'image', // Note the different type.
         ],
     ]
 );
@@ -103,12 +99,17 @@ $post->set_acf(
 // Try to save the post.
 try {
     // If the data was invalid or errors occur while saving the post into the dabase, an exception is thrown.
-    $post->save();
+    echo intval( $post->import() );
 }
 catch ( \Geniem\Oopi\Exception\PostException $e ) {
+    // For this example we just dump and log the errors.
     foreach ( $e->get_errors() as $scope => $errors ) {
-        foreach ( $errors as $key => $message ) {
-            error_log( "Importer error in $scope: " . $message );
+        foreach ( $errors as $error ) {
+            $message = $error['message'];
+            $data    = $error['data'];
+
+            var_dump( $data ); // phpcs:ignore
+            error_log( "Importer error in $scope: " . $message ); // phpcs:ignore
         }
     }
 }
