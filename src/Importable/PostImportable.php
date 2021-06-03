@@ -6,8 +6,7 @@
 namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\AcfField;
-use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Factory\AcfFieldFactory;
+use Geniem\Oopi\Factory\Attribute\AcfFieldFactory;
 use Geniem\Oopi\Importer\PostImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;

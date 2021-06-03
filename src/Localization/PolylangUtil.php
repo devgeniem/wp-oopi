@@ -1,6 +1,6 @@
 <?php
 /**
- * Polylang translations controller.
+ * Utility methods for controlling translations with Polylang.
  */
 
 namespace Geniem\Oopi\Localization;
@@ -10,25 +10,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Classes
-use Geniem\Oopi\Language;
-use Geniem\Oopi\Settings;
+use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Storage;
-use Geniem\Oopi\Post;
-use Geniem\Oopi\Term;
-use Geniem\Oopi\Util;
+use PLL_Admin;
+use PLL_Frontend;
+use PLL_REST_Request;
+use PLL_Settings;
 
 /**
- * Class Polylang
+ * Class PolylangUtil
  *
  * @package Geniem\Oopi
  */
-class Polylang {
+class PolylangUtil {
+
     /**
-     * Holds Polylang.
+     * Holds the current Polylang plugin class instance
+     * in the given context. Typing is bad, but it's not our fault.
      *
-     * TODO: improve typing.
-     *
-     * @var object|null
+     * @var PLL_Settings|PLL_Admin|PLL_REST_Request|PLL_Frontend|null
      */
     protected static $polylang = null;
 
@@ -37,14 +39,14 @@ class Polylang {
      *
      * @var array
      */
-    protected static array $languages = [];
+    protected static $languages = [];
 
     /**
      * Holds current attachment id.
      *
      * @var array
      */
-    protected static array $current_attachment_ids = [];
+    protected static $current_attachment_ids = [];
 
     /**
      * Initialize.
@@ -77,9 +79,9 @@ class Polylang {
     }
 
     /**
-     * Returns the polylang object.
+     * Returns the Polylang plugin instance.
      *
-     * @return object|null Polylang object.
+     * @return object|null Polylang plugin instance.
      */
     public static function pll() {
         return self::$polylang;
@@ -113,12 +115,12 @@ class Polylang {
     /**
      * Sets the term language.
      *
-     * @param Term $term The Oopi term.
-     * @param Post $post The Oopi post.
+     * @param TermImportable $term The Oopi term.
+     * @param PostImportable $post The Oopi post.
      *
      * @return void
      */
-    public static function set_term_language( Term $term, Post $post ) {
+    public static function set_term_language( TermImportable $term, PostImportable $post ) {
         $wp_term = $term->get_term();
 
         if ( ! $wp_term instanceof \WP_Term ) {
@@ -192,5 +194,16 @@ class Polylang {
             // Remove keys with the identificator.
             return strpos( $key, $identificator ) === false;
         } );
+    }
+
+    /**
+     * Check if a language is installed.
+     *
+     * @param string $locale The PLL locale code.
+     *
+     * @return bool
+     */
+    public static function language_exists( string $locale ) : bool {
+        return in_array( $locale, pll_languages_list(), true );
     }
 }

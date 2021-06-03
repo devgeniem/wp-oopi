@@ -7,7 +7,7 @@ namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\TermMeta;
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Factory\TermMetaFactory;
+use Geniem\Oopi\Factory\Attribute\TermMetaFactory;
 use Geniem\Oopi\Importer\TermImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
@@ -138,6 +138,15 @@ class TermImportable implements Importable {
      */
     public function get_wp_id(): ?int {
         return $this->term->term_id ?? 0;
+    }
+
+    /**
+     * Getter for the term slug in the set term data.
+     *
+     * @return string
+     */
+    public function get_term_slug() {
+        return $this->term->slug ?? '';
     }
 
     /**

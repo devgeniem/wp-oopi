@@ -3,7 +3,7 @@
  * A factory for creating ACF field attributes statically.
  */
 
-namespace Geniem\Oopi\Factory;
+namespace Geniem\Oopi\Factory\Attribute;
 
 use Geniem\Oopi\Attribute\AcfField;
 use Geniem\Oopi\Interfaces\AttributeFactory;

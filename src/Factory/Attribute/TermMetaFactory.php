@@ -1,23 +1,23 @@
 <?php
 /**
- * A factory for creating post meta attributes statically.
+ * A factory for creating term meta attributes statically.
  */
 
-namespace Geniem\Oopi\Factory;
+namespace Geniem\Oopi\Factory\Attribute;
 
 use Geniem\Oopi\Attribute\Meta;
-use Geniem\Oopi\Attribute\PostMeta;
+use Geniem\Oopi\Attribute\TermMeta;
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Interfaces\AttributeFactory;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Util;
 
 /**
- * Class PostMetaFactory
+ * Class TermMetaFactory
  *
  * @package Geniem\Oopi\Factory
  */
-class PostMetaFactory implements AttributeFactory {
+class TermMetaFactory implements AttributeFactory {
 
     /**
      * Factory method for creating the object from raw data.
@@ -33,6 +33,6 @@ class PostMetaFactory implements AttributeFactory {
         $value = Util::get_prop( $data, 'value' );
         $saver = Util::get_prop( $data, 'saver', null );
 
-        return new PostMeta( $importable, $key, $value, $saver );
+        return new TermMeta( $importable, $key, $value, $saver );
     }
 }

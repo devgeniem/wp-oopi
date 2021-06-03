@@ -1,12 +1,12 @@
 <?php
 /**
- * Handles saving Polylang localisation data for posts.
+ * Handles saving Polylang localisation data for terms.
  */
 
 namespace Geniem\Oopi\Attribute\Saver;
 
 use Geniem\Oopi\Attribute\Language;
-use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\Importable;
@@ -14,11 +14,11 @@ use Geniem\Oopi\Localization\PolylangUtil;
 use Geniem\Oopi\Storage;
 
 /**
- * Class PolylangPostLanguageSaver
+ * Class PolylangTermLanguageSaver
  *
  * @package Geniem\Oopi\Attribute\Saver
  */
-class PolylangPostLanguageSaver implements AttributeSaver {
+class PolylangTermLanguageSaver implements AttributeSaver {
 
     /**
      * Saves the Polylang localisation data for a post importable.
@@ -29,7 +29,7 @@ class PolylangPostLanguageSaver implements AttributeSaver {
      * @return int|string|void
      */
     public function save( Importable $importable, Attribute $attribute ) {
-        if ( ! $importable instanceof PostImportable ) {
+        if ( ! $importable instanceof TermImportable ) {
             $importable->get_error_handler()->set_error(
                 'Unable to save post localization for an object of type: ' . get_class( $importable )
             );
@@ -43,8 +43,8 @@ class PolylangPostLanguageSaver implements AttributeSaver {
         }
 
         // Get needed variables.
-        $post_id = $importable->get_wp_id();
-        $wp_post = get_post( $post_id );
+        $term_id = $importable->get_wp_id();
+        $wp_term = get_term( $term_id );
         $locale  = $attribute->get_locale();
         $main_id = $attribute->get_main_oopi_id();
 
@@ -57,39 +57,40 @@ class PolylangPostLanguageSaver implements AttributeSaver {
         }
 
         // Set post locale.
-        \pll_set_post_language( $post_id, $locale );
+        \pll_set_post_language( $term_id, $locale );
 
-        // If a post name was set in the data and it doesn't match the database,
-        // update post name to allow PLL to handle unique slugs.
+        // If a term slug was set in the data and it doesn't match the database,
+        // update term slug to allow PLL to handle unique slugs.
         // TODO: does this really work?
         if (
-            $importable->get_post_name() &&
-            $importable->get_post_name() !== $wp_post->post_name
+            $importable->get_term_slug() &&
+            $importable->get_term_slug() !== $wp_term->slug
         ) {
-            wp_update_post(
+            wp_update_term(
+                $term_id,
+                $wp_term->taxonomy,
                 [
-                    'ID'        => $importable->get_wp_id(),
-                    'post_name' => $importable->get_post_name(),
+                    'slug' => $importable->get_term_slug(),
                 ]
             );
         }
 
-        // Run only if a main object exists
+        // Run only if a main object exists.
         if ( $main_id ) {
-            // Get main post id for translation linking
-            $main_post_id = Storage::get_post_id_by_oopi_id( $main_id );
-            $main_locale  = \pll_get_post_language( $main_post_id );
+            // Get main term id for translation linking
+            $main_term_id = Storage::get_term_id_by_oopi_id( $main_id );
+            $main_locale  = \pll_get_term_language( $main_term_id );
 
             // Set the link for translations if a matching post was found.
-            if ( $main_post_id ) {
+            if ( $main_term_id ) {
 
                 // Get current translation.
-                $current_translations = \pll_get_post_translations( $main_post_id );
+                $current_translations = \pll_get_post_translations( $main_term_id );
 
                 // Set up new translations.
                 $new_translations = [
-                    $main_locale => $main_post_id,
-                    $locale      => $post_id,
+                    $main_locale => $main_term_id,
+                    $locale      => $term_id,
                 ];
 
                 $parsed_args = \wp_parse_args( $new_translations, $current_translations );
@@ -99,5 +100,4 @@ class PolylangPostLanguageSaver implements AttributeSaver {
             }
         }
     }
-
 }

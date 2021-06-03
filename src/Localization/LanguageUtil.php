@@ -5,8 +5,8 @@
 
 namespace Geniem\Oopi\Localization;
 
-// Classes
 use Geniem\Oopi\Attribute\Saver\PolylangPostLanguageSaver;
+use Geniem\Oopi\Attribute\Saver\PolylangTermLanguageSaver;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\AttributeSaver;
@@ -37,19 +37,19 @@ class LanguageUtil {
      * Initialize any of the supported localization plugin handler if one is installed.
      */
     public static function init() {
-        Polylang::init();
+        PolylangUtil::init();
     }
 
     /**
      * Saves WP term language data with your installed WordPress translation plugin.
      * The actual language saving is done in corresponding plugin classes.
      *
-     * @param Term           $term The Oopi term.
+     * @param TermImportable $term The Oopi term.
      * @param PostImportable $post The Oopi post.
      *
      * @return boolean
      */
-    public static function set_term_language( Term $term, PostImportable $post ) {
+    public static function set_term_language( TermImportable $term, PostImportable $post ) {
 
         // Check which translation plugin should be used
         $activated_i18n_plugin = self::get_activated_plugin();
@@ -62,7 +62,7 @@ class LanguageUtil {
         // If Polylang is activated use Polylang.
         if ( $activated_i18n_plugin === 'polylang' ) {
 
-            Polylang::set_term_language( $term, $post );
+            PolylangUtil::set_term_language( $term, $post );
 
             return true;
         }
@@ -103,7 +103,7 @@ class LanguageUtil {
             case PostImportable::class:
                 return self::post_language_saver_factory( $active_plugin );
             case TermImportable::class:
-                return null;
+                return self::term_language_saver_factory( $active_plugin );
             default:
                 return null;
         }
@@ -116,7 +116,7 @@ class LanguageUtil {
      *
      * @return AttributeSaver|null
      */
-    protected static function post_language_saver_factory( string $plugin ) : ?AttributeSaver {
+    public static function post_language_saver_factory( string $plugin ) : ?AttributeSaver {
         switch ( $plugin ) {
             case self::POLYLANG_KEY:
                 return new PolylangPostLanguageSaver();
@@ -132,13 +132,13 @@ class LanguageUtil {
      *
      * @return AttributeSaver|null
      */
-    protected static function term_language_saver_factory( string $plugin ) : ?AttributeSaver {
+    public static function term_language_saver_factory( string $plugin ) : ?AttributeSaver {
         switch ( $plugin ) {
             case self::POLYLANG_KEY:
-                // TODO: return a new term language saver.
-                return null;
+                return new PolylangTermLanguageSaver();
             default:
                 return null;
         }
     }
+
 }

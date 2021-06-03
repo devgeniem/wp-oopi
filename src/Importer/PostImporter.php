@@ -312,9 +312,10 @@ class PostImporter implements Importer {
         if ( is_array( $terms ) ) {
             $term_ids_by_tax = [];
             foreach ( $terms as $term ) {
+                // TODO: Check term type. before running import().
                 // Import term if it's not already imported.
                 if ( ! $term->is_imported() ) {
-                    $term_id = $term->get_importer()->import( $term, $this->error_handler );
+                    $term_id = $term->import();
                 }
 
                 // Map the ids into the relationship array.

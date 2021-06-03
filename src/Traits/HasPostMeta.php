@@ -4,7 +4,7 @@ namespace Geniem\Oopi\Traits;
 
 use Geniem\Oopi\Attribute\PostMeta;
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Factory\PostMetaFactory;
+use Geniem\Oopi\Factory\Attribute\PostMetaFactory;
 use Geniem\Oopi\Interfaces\Importable;
 
 trait HasPostMeta {

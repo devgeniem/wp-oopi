@@ -7,13 +7,12 @@ namespace Geniem\Oopi\Attribute\Saver;
 
 use Geniem\Oopi\Attribute\AcfField;
 use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Factory\TermFactory;
+use Geniem\Oopi\Factory\Importable\TermFactory;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Localization\LanguageUtil;
 use Geniem\Oopi\Storage;
 use Geniem\Oopi\Util;
 
@@ -105,6 +104,7 @@ class AcfFieldSaver implements AttributeSaver {
                     return update_field( $key, $attachment_post_id, $post->get_wp_id() );
                 }
                 else {
+                    // TODO: change to error handler.
                     throw new AttributeSaveException(
                         "Trying to set an image in an ACF field that does not exists.
                         Field key: $key. Attachment OOPI id: $value."

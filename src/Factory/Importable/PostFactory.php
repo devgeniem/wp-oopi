@@ -3,7 +3,7 @@
  * A factory class for statically creating importable post objects.
  */
 
-namespace Geniem\Oopi\Factory;
+namespace Geniem\Oopi\Factory\Importable;
 
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Importable\PostImportable;

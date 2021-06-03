@@ -3,14 +3,12 @@
  * A factory class for statically creating term importable objects.
  */
 
-namespace Geniem\Oopi\Factory;
+namespace Geniem\Oopi\Factory\Importable;
 
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Importable\TermImportable;
-use Geniem\Oopi\Interfaces\ErrorHandler;
-use Geniem\Oopi\Interfaces\ImportableFactory;
 use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Interfaces\Importer;
+use Geniem\Oopi\Interfaces\ImportableFactory;
 use Geniem\Oopi\Util;
 
 /**

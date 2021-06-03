@@ -5,8 +5,6 @@
 
 namespace Geniem\Oopi\Importable;
 
-use Geniem\Oopi\Attribute\PostMeta;
-use Geniem\Oopi\Factory\PostMetaFactory;
 use Geniem\Oopi\Importer\AttachmentImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
