@@ -40,7 +40,6 @@ class PolylangPostLanguageSaver implements AttributeSaver {
      * @return int|string|void
      */
     public function save( Importable $importable, Attribute $attribute ) {
-        var_dump(get_class( $importable ));
         if ( ! in_array( get_class( $importable ), $this->allowed_types, true ) ) {
             $importable->get_error_handler()->set_error(
                 'Unable to save post localization for an object of type: ' . get_class( $importable )

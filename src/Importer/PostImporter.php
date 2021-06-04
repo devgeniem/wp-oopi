@@ -237,15 +237,15 @@ class PostImporter implements Importer {
 
                 $rolled_back = $this->rollback();
 
+                $err = 'An error occurred while importing the post with OOPI id: '
+                . $this->importable->get_oopi_id() . '. ';
+
                 // Set the correct error message.
                 $err = $rolled_back ?
                     // Rollback error message
-                    __(
-                        'An error occurred while saving the import data. Rolled back the last successful import.',
-                        'oopi'
-                    ) :
+                    $err . 'Rolled back the last successful import.' :
                     // Default error message
-                    __( 'An error occurred while saving the import data. Set the post status to "draft".', 'oopi' );
+                    $err . 'Set the post status to "draft".';
 
                 throw new PostException(
                     $err,

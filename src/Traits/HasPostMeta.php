@@ -1,4 +1,7 @@
 <?php
+/**
+ * Used in importables with post meta.
+ */
 
 namespace Geniem\Oopi\Traits;
 
@@ -7,10 +10,15 @@ use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Factory\Attribute\PostMetaFactory;
 use Geniem\Oopi\Interfaces\Importable;
 
+/**
+ * Trait HasPostMeta
+ *
+ * @package Geniem\Oopi\Traits
+ */
 trait HasPostMeta {
 
     /**
-     * Metadata in an associative array.
+     * Post meta.
      *
      * @var PostMeta[]
      */

@@ -6,6 +6,7 @@
 namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\TermMeta;
+use Geniem\Oopi\Exception\TermException;
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Factory\Attribute\TermMetaFactory;
 use Geniem\Oopi\Importer\TermImporter;
@@ -85,7 +86,7 @@ class TermImportable implements Importable {
     protected ?string $parent = null;
 
     /**
-     * Metadata in an associative array.
+     * Term meta.
      *
      * @var TermMeta[]
      */
@@ -344,10 +345,20 @@ class TermImportable implements Importable {
     }
 
     /**
+     * Getter for term meta.
+     *
+     * @return TermMeta[]
+     */
+    public function get_meta() : array {
+        return $this->meta;
+    }
+
+    /**
      * Import the term using the attached importer.
      *
      * @return int|null The imported WP term id.
      * @throws TypeException Thrown if the importable is of the wrong type.
+     * @throws TermException Thrown if the import process resulted in errors.
      */
     public function import(): ?int {
         if ( ! empty( $this->importer ) ) {

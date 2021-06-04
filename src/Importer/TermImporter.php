@@ -5,12 +5,17 @@
 
 namespace Geniem\Oopi\Importer;
 
+use Exception;
+use Geniem\Oopi\Attribute\Meta;
 use Geniem\Oopi\Exception\LanguageException;
+use Geniem\Oopi\Exception\PostException as PostException;
+use Geniem\Oopi\Exception\TermException;
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
 use Geniem\Oopi\Interfaces\Importer;
+use Geniem\Oopi\Log;
 use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Storage;
 use WP_Error;
@@ -76,6 +81,7 @@ class TermImporter implements Importer {
      *
      * @return int|null On success, the WP item id is returned, null on failure.
      * @throws TypeException Thrown if the importable is not a term importable.
+     * @throws TermException Thrown if the import process resulted in errors.
      */
     public function import( Importable $importable, ?ErrorHandler $error_handler = null ) : ?int {
         do_action( 'oopi_before_term_import', $this );
@@ -114,6 +120,20 @@ class TermImporter implements Importer {
             $this->save_language();
         }
 
+        // Save metadata.
+        if ( ! empty( $this->importable->get_meta() ) ) {
+            $this->save_meta();
+        }
+
+        $valid = $this->importable->validate();
+        if ( ! $valid ) {
+            throw new TermException(
+                'An error occurred while importing the term with OOPI id: ' . $this->importable->get_oopi_id(),
+                0,
+                $this->error_handler->get_errors()
+            );
+        }
+
         $this->importable->set_imported( true );
 
         // Hook for running functionalities after saving the post.
@@ -147,6 +167,28 @@ class TermImporter implements Importer {
         );
 
         return $result;
+    }
+
+    /**
+     * Saves the metadata of the post.
+     *
+     * @return void
+     */
+    protected function save_meta() {
+        $meta = $this->importable->get_meta();
+        if ( is_array( $meta ) ) {
+            array_walk( $meta, function( Meta $attr ) {
+                try {
+                    $attr->save();
+                }
+                catch ( Exception $e ) {
+                    $this->error_handler->set_error(
+                        'Unable to save meta attribute. Error: ' . $e->getMessage(),
+                        $attr
+                    );
+                }
+            } );
+        }
     }
 
     /**
