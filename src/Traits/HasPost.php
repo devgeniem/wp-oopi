@@ -26,25 +26,25 @@ trait HasPost {
     /**
      * Sets the basic data of a post.
      *
-     * @param  WP_Post $post_obj        Post object.
-     * @param  bool    $skip_validation Whether to skip validation or not.
+     * @param  WP_Post|array|object $post_obj        Post object.
+     * @param  bool                 $skip_validation Whether to skip validation or not.
      * @return WP_Post Post object.
      */
-    public function set_post( WP_Post $post_obj, $skip_validation = false ) {
+    public function set_post( $post_obj, $skip_validation = false ) {
         // Hold onto the current id.
         $current_id = $this->get_wp_id();
 
         // Set the WP id if found and none is set.
-        if ( ! $current_id && $post_obj->ID ) {
-            $this->set_wp_id( $post_obj->ID );
+        if ( ! $current_id && Util::get_prop( $post_obj, 'ID' ) ) {
+            $this->set_wp_id( Util::get_prop( $post_obj, 'ID' ) );
         }
 
         // Set the post object.
-        $this->post = new WP_Post( $post_obj );
-
-        if ( $current_id ) {
-            // Ensure the id is not changed.
-            $this->post->ID = $current_id;
+        if ( $post_obj instanceof WP_Post ) {
+            $this->post = $post_obj;
+        }
+        else {
+            $this->post = new WP_Post( (object) $post_obj );
         }
 
         // Filter values before validating.

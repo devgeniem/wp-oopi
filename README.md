@@ -91,7 +91,7 @@ OOPI supports importing [Advanced Custom Fields](https://fi.wordpress.org/plugin
 
 - `$oopi_id` `(string) (Required)` The unique external identifier for your importable.
 - `$data` `(array|object) (Required)` An array/object containing the following keys:
-  - `post` `(object) (Required)` The basic [WP post](https://codex.wordpress.org/Class_Reference/WP_Post) object data as a `stdClass` object.
+  - `post` `(object) (Required)` A [`WP_Post`](https://codex.wordpress.org/Class_Reference/WP_Post) instance or an array/object containing the keys and values for `WP_Post` class properties.
   - `attachments` `(array) (Optional)` An array of attachment objects containing:
     - `oopi_id` `(string) (Required)` An unique id identifying the object in the external data source.
     - `src` `(string) (Required)` The source from which to upload the image into WordPress.
@@ -103,10 +103,11 @@ OOPI supports importing [Advanced Custom Fields](https://fi.wordpress.org/plugin
     - `key` `(string) (Required)` The meta key.
     - `value` `(mixed) (Required)` The meta value.
   - `terms` `(array) (Optional)` An array containing either-or:
-    - `(Geniem\Oopi\Term)` OOPI Term object.
-      - _If the OOPI term holds a WP_Term object, importing will override existing term data._
-    - `(array|object)` Raw data will be mapped into a Term object.
+    - `(Geniem\Oopi\Importable\TermImportable)` OOPI Term importable.
+      - _If the OOPI term importable holds a WP_Term object, importing will override existing term data._
+    - `(array|object)`
       - `oopi_id` `(string) (Required)` All terms must contain an id.
+      - `term` `WP_Term|object|array (Optional)` An object/array containing properties of a WP_Term object or a `WP_Term` object. If set, data for the Term importable will be mapped from the object.
       - `slug` `(string) (Required)` The taxonomy term slug. The term slugs must be unique, ie. they can not collide between different language versions.
       - `name` `(string) (Required)` The taxonomy term display name.
       - `taxonomy` `(string) (Required)` The taxonomy name, for example `category`.
@@ -186,6 +187,22 @@ The plugin creates a custom table into the WordPress database called `oopi_log`.
 The log provides a rollback feature. If an import fails the importer tries to roll back the previous successful import. If no previous imports with the `OK` status are found, the imported object is set into `draft` state to prevent front-end users from accessing posts with malformed data.
 
 To disable the rollback feature set the `OOPI_ROLLBACK_DISABLE` constant with a value of `true`.
+
+## Tests
+
+### Local tests
+
+The plugin code is tested using PHPUnit. Local test can be run using the provided Docker container with Docker Compose. The following command will build the container and start it. The container's CMD script will run PHPUnit once and then set up [pywathc](https://pypi.org/project/pywatch/) to watch changes in the `./tests` directory. If changes are made, test are rerun.
+
+```
+$ docker compose up
+```
+
+If you need to debug the tests, the container comes with [Xdebug 3](https://xdebug.org/) for step debugging. You need to set up PHPUnit using the provided docker container as a remote interpreter. For this, use the `php` service in the Docker Compose file and the PHPUnit executable `vendor/bin/phpunit`. The full path to the executable inside the container is `/usr/src/app/vendor/bin/phpunit`.
+
+### Travis CI
+
+This repository also contains a GitHub integration for [Travic CI](https://travis-ci.org/). All commits to the `main` branch will be automatically tested with Travis. 
 
 ## Changelog
 

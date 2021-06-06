@@ -34,11 +34,6 @@ class AttachmentImportable implements Importable {
     use ImportableBase;
 
     /**
-     * Use the WP post property.
-     */
-    use HasPost;
-
-    /**
      * Attachments can have post meta.
      */
     use HasPostMeta;
@@ -145,13 +140,7 @@ class AttachmentImportable implements Importable {
         $wp_id = Storage::get_post_id_by_oopi_id( $oopi_id );
         if ( $wp_id ) {
             // Fetch and set the existing post object.
-            $this->set_post( get_post( $wp_id ) );
-        }
-        else {
-            // Initialize the empty post object.
-            $this->set_post(
-                new \WP_Post( [ 'post_type' => 'attachment' ] )
-            );
+            $this->set_wp_id( $wp_id );
         }
     }
 

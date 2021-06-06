@@ -6,10 +6,9 @@
 namespace Geniem\Oopi\Importable;
 
 use Geniem\Oopi\Attribute\AcfField;
-use Geniem\Oopi\Attribute\PostThumbnail;
 use Geniem\Oopi\Factory\Importable\AttachmentFactory;
 use Geniem\Oopi\Factory\Attribute\AcfFieldFactory;
-use Geniem\Oopi\Importer\PostImporter;
+use Geniem\Oopi\Factory\Importable\TermFactory;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
@@ -179,7 +178,7 @@ class PostImportable implements Importable {
         // If no error handler is set, use the default one.
         $this->error_handler = $error_handler ?? new OopiErrorHandler( static::ESCOPE );
 
-        $this->importer = $importer ?? new PostImporter();
+        $this->importer = $importer ?? $this->get_importer();
 
         // Set the Importer id.
         $this->oopi_id = $oopi_id;
@@ -275,11 +274,9 @@ class PostImportable implements Importable {
         // Filter values before validating.
         foreach ( $tax_array as $term ) {
             if ( ! $term instanceof TermImportable ) {
-                $oopi_id       = Util::get_prop( $term, 'oopi_id', null );
-                $error_handler = Util::get_prop( $term, 'error_handler', $this->error_handler );
-                $importer      = Util::get_prop( $term, 'importer', null );
+                $oopi_id = Util::get_prop( $term, 'oopi_id', null );
                 try {
-                    $term          = ( new TermImportable( $oopi_id, $importer, $error_handler ) )->set_data( $term );
+                    $term          = TermFactory::create( $oopi_id, $term );
                     $this->terms[] = apply_filters( 'oopi_taxonomy_term', $term );
                 }
                 catch ( \Exception $exception ) {

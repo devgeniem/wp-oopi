@@ -133,9 +133,9 @@ trait ImportableBase {
     /**
      * The importer instance.
      *
-     * @var Importer
+     * @var ?Importer
      */
-    protected Importer $importer;
+    protected ?Importer $importer = null;
 
     /**
      * Setter for a local importer.
@@ -156,7 +156,7 @@ trait ImportableBase {
      * @return Importer The local or global importer.
      */
     public function get_importer() : Importer {
-        return $this->importer ?: Plugin::get_importer( get_called_class() );
+        return $this->importer ?? Plugin::get_importer( get_called_class() );
     }
 
     /**

@@ -1,0 +1,31 @@
+
+# This uses newer and faster docker based build system
+sudo: false
+
+language: php
+
+notifications:
+  slack:
+    if: (branch = master) OR (branch =~ /^(release).*$/)
+    on_success: always
+    on_failure: always
+
+php:
+  - nightly
+  - 7.4
+  - 7.3
+
+matrix:
+  allow_failures:
+    - php: nightly
+
+install:
+  - rm composer.lock
+  - travis_retry composer update --no-interaction --prefer-dist --no-suggest --no-progress
+
+script:
+  - phpunit
+
+cache:
+  directories:
+    - $HOME/.composer/cache

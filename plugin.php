@@ -8,15 +8,15 @@
  * Author URI:  http://www.github.com/devgeniem
  * License:     GPL3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain: oopi
- * Domain Path: /languages
  */
 
 namespace Geniem\Oopi;
 
 use Geniem\Oopi\Exception\TypeException;
+use Geniem\Oopi\Importable\AttachmentImportable;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
+use Geniem\Oopi\Importer\AttachmentImporter;
 use Geniem\Oopi\Importer\PostImporter;
 use Geniem\Oopi\Importer\TermImporter;
 use Geniem\Oopi\Interfaces\Importable;
@@ -69,14 +69,9 @@ class Plugin {
      * Initialize the plugin.
      */
     public static function init() {
-        // If a custom autoloader exists, use it.
-        if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-            require_once __DIR__ . '/vendor/autoload.php';
-        }
-
         // Set the plugin version.
         $plugin_data       = get_file_data( __FILE__, [ 'Version' => 'Version' ], 'plugin' );
-        self::$plugin_data = wp_parse_args( $plugin_data, self::$plugin_data );
+        self::$plugin_data = array_merge( $plugin_data, self::$plugin_data );
 
         // Set the basic settings.
         Settings::init( self::$plugin_data );
@@ -88,9 +83,6 @@ class Plugin {
         add_action( 'wp_loaded', function() {
             LanguageUtil::init();
         } );
-
-        // Load the plugin textdomain.
-        load_plugin_textdomain( 'oopi', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
     }
 
     /**
@@ -100,6 +92,7 @@ class Plugin {
         static::$importables = [
             PostImportable::class => PostImporter::class,
             TermImportable::class => TermImporter::class,
+            AttachmentImportable::class => AttachmentImporter::class,
         ];
     }
 
@@ -139,10 +132,11 @@ class Plugin {
      *
      * @param string $importable_class The importable class name.
      *
-     * @return Importer|null
+     * @return ?Importer
      */
-    public static function get_importer( string $importable_class ) : ?Importable {
-        return static::$importables[ $importable_class ] ?: null;
+    public static function get_importer( string $importable_class ) : ?Importer {
+        $importer = new static::$importables[ $importable_class ]();
+        return $importer;
     }
 }
 

@@ -1,8 +1,19 @@
 # Ignore OSX file system junk
 .DS_Store
 
-# Composer vendor directory
+# Ignore node dependency directories.
+node_modules/
+
+# Ignore composer vendor packages.
 vendor/
+
+# Ignore log files and databases.
+*.log
+*.sql
+*.sqlite
 
 # Ignore editor configs.
 .idea
+
+# Ignore PHPUnit cache.
+.phpunit.result.cache

@@ -5,6 +5,7 @@
 
 namespace Geniem\Oopi\Factory\Importable;
 
+use Geniem\Oopi\Exception\PostException;
 use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Interfaces\Importable;
@@ -25,6 +26,7 @@ class PostFactory implements ImportableFactory {
      * @param mixed  $data    The importable data.
      *
      * @return PostImportable
+     * @throws PostException Thrown if there is no post set in the data.
      */
     public static function create( string $oopi_id, $data ) : Importable {
         $importer      = Util::get_prop( $data, 'importer', null );
@@ -38,6 +40,10 @@ class PostFactory implements ImportableFactory {
         $terms       = Util::get_prop( $data, 'terms', null );
         $acf         = Util::get_prop( $data, 'acf', null );
         $language    = Util::get_prop( $data, 'language', null );
+
+        if ( empty( $post ) ) {
+            throw new PostException( 'The required "post" property not found in data passed for: ' . __CLASS__ );
+        }
 
         // Post
         $importable->set_post( $post );

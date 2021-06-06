@@ -43,7 +43,6 @@ class AttachmentImporter implements Importer {
 
         $error_handler = $error_handler ?? $importable->get_error_handler();
 
-        $updated            = false;
         $oopi_id            = $importable->get_oopi_id();
         $attachment_src     = $importable->get_src();
         $attachment_post_id = $importable->get_wp_id() ??
@@ -106,6 +105,7 @@ class AttachmentImporter implements Importer {
                 }
 
                 $attachment_post_id = $this->insert_attachment(
+                    $importable,
                     $upload['file'],
                     $upload['url'],
                     $error_handler,
@@ -184,6 +184,7 @@ class AttachmentImporter implements Importer {
         $main_file    = get_attached_file( $main_post->ID );
         if ( $main_file ) {
             $attachment_post_id = $this->insert_attachment(
+                $importable,
                 $main_file,
                 $main_post->guid,
                 $error_handler,
@@ -330,14 +331,16 @@ class AttachmentImporter implements Importer {
     /**
      * Creates the attachment and returns the created post id.
      *
-     * @param string       $file_path     The file path.
-     * @param string       $file_url      The WP file url to use as the GUID.
-     * @param ErrorHandler $error_handler The error handler.
-     * @param int|null     $parent_wp_id  The parent post id to attach to.
+     * @param AttachmentImportable $importable    The attachment importable.
+     * @param string               $file_path     The file path.
+     * @param string               $file_url      The WP file url to use as the GUID.
+     * @param ErrorHandler         $error_handler The error handler.
+     * @param int|null             $parent_wp_id  The parent post id to attach to.
      *
      * @return int|null
      */
     protected function insert_attachment(
+        AttachmentImportable $importable,
         string $file_path,
         string $file_url,
         ErrorHandler $error_handler,
@@ -348,9 +351,10 @@ class AttachmentImporter implements Importer {
         $post_info = [
             'guid'           => $file_url,
             'post_mime_type' => $file_type['type'],
-            'post_title'     => $parent->get_title(),
-            'post_content'   => $parent->get_description(),
-            'post_excerpt'   => $parent->get_caption(),
+            'post_title'     => $importable->get_title(),
+            'post_content'   => $importable->get_description(),
+            'post_excerpt'   => $importable->get_caption(),
+            'post_type'      => 'attachment',
             'post_status'    => 'inherit',
         ];
 

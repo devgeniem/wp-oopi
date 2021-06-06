@@ -17,6 +17,7 @@ use Geniem\Oopi\OopiErrorHandler;
 use Geniem\Oopi\Storage;
 use Geniem\Oopi\Traits\ImportableBase;
 use Geniem\Oopi\Traits\Translatable;
+use Geniem\Oopi\Util;
 use WP_Term;
 
 /**
@@ -176,31 +177,31 @@ class TermImportable implements Importable {
     /**
      * Set the term.
      *
-     * @param WP_Term|null $term A WP term object.
+     * @param WP_Term|array|object $term_obj WP_Term data.
      *
      * @return TermImportable Return self to enable chaining.
      */
-    public function set_term( ?WP_Term $term ) : TermImportable {
+    public function set_term( $term_obj ) : TermImportable {
         // Hold onto the current id.
         $current_id = $this->get_wp_id();
 
-        $this->term = $term;
-
-        // Set the WP id if found.
-        if ( ! $current_id && $term->term_id ) {
-            $this->set_wp_id( $term->term_id );
+        if ( $term_obj instanceof WP_Term ) {
+            $this->term = $term_obj;
+        }
+        else {
+            $this->term = new WP_Term( (object) $term_obj );
         }
 
-        // Ensure the id is not changed.
-        if ( $current_id ) {
-            $this->term->term_id = $current_id;
+        // Set the WP id if found.
+        if ( ! $current_id && Util::get_prop( $term_obj, 'term_id' ) ) {
+            $this->set_wp_id( Util::get_prop( $term_obj, 'term_id' ) );
         }
 
         // Set properties with WP term data.
-        $this->set_name( $term->name );
-        $this->set_slug( $term->slug );
-        $this->set_description( $term->description );
-        $this->set_taxonomy( $term->taxonomy );
+        $this->set_name( $this->term->name ?? '' );
+        $this->set_slug( $this->term->slug ?? '' );
+        $this->set_description( $this->term->description ?? '' );
+        $this->set_taxonomy( $this->term->taxonomy ?? '' );
 
         return $this;
     }
