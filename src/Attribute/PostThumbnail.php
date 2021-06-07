@@ -89,11 +89,13 @@ class PostThumbnail implements Attribute {
     }
 
     /**
-     * PostMeta constructor.
+     * PostThumbnail constructor.
+     * A post thumbnail always relates to an importable object (the post)
+     * and to an importable attachment.
      *
-     * @param PostImportable       $importable The importable.
-     * @param AttachmentImportable $attachment The attachment.
-     * @param AttributeSaver|null  $saver      An optional saver. The PostMetaSaver by default.
+     * @param PostImportable       $importable The post object the thumbnail is for.
+     * @param AttachmentImportable $attachment The attachment to be set as the attachment.
+     * @param AttributeSaver|null  $saver      An optional saver. The PostThumbnailSaver by default.
      */
     public function __construct(
         PostImportable $importable,
