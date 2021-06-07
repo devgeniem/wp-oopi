@@ -19,11 +19,6 @@ use Geniem\Oopi\Interfaces\AttributeSaver;
 class TermMeta extends Meta {
 
     /**
-     * Error scope.
-     */
-    const ESCOPE = 'term_meta';
-
-    /**
      * TermMeta constructor.
      *
      * @param Importable          $importable The importable.
