@@ -21,7 +21,7 @@ use Geniem\Oopi\Storage;
 class PolylangTermLanguageSaver implements AttributeSaver {
 
     /**
-     * Saves the Polylang localisation data for a post importable.
+     * Saves the Polylang localisation data for a term importable.
      *
      * @param Importable $importable A save operation is always related to an importable.
      * @param Attribute  $attribute  A save operation is always related to an attribute.
@@ -31,13 +31,13 @@ class PolylangTermLanguageSaver implements AttributeSaver {
     public function save( Importable $importable, Attribute $attribute ) {
         if ( ! $importable instanceof TermImportable ) {
             $importable->get_error_handler()->set_error(
-                'Unable to save post localization for an object of type: ' . get_class( $importable )
+                'Unable to save term localization for an object of type: ' . get_class( $importable )
             );
             return;
         }
         if ( ! $attribute instanceof Language ) {
             $importable->get_error_handler()->set_error(
-                'Unable to save post localization for an attribute of type: ' . get_class( $attribute )
+                'Unable to save term localization for an attribute of type: ' . get_class( $attribute )
             );
             return;
         }
@@ -50,7 +50,7 @@ class PolylangTermLanguageSaver implements AttributeSaver {
 
         if ( ! PolylangUtil::language_exists( $locale ) ) {
             $importable->get_error_handler()->set_error(
-                "Unable to save post localization for an unknown locale: $locale.
+                "Unable to save term localization for an unknown locale: $locale.
                 Make sure the language is installed before importing objects."
             );
             return;
@@ -81,7 +81,7 @@ class PolylangTermLanguageSaver implements AttributeSaver {
             $main_term_id = Storage::get_term_id_by_oopi_id( $main_id );
             $main_locale  = \pll_get_term_language( $main_term_id );
 
-            // Set the link for translations if a matching post was found.
+            // Set the link for translations if a matching term was found.
             if ( $main_term_id ) {
 
                 // Get current translation.
