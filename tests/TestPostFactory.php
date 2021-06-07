@@ -61,8 +61,9 @@ class TestPostFactory extends \PHPUnit\Framework\TestCase {
 
         // Mock a post object.
         $post_mock = Mockery::mock( '\WP_Post' );
+        $post_mock_title = 'Test';
         $post_mock->ID = 0;
-        $post_mock->post_title = 'Test';
+        $post_mock->post_title = $post_mock_title;
 
         // Mock a term object.
         $term_mock = Mockery::mock( '\WP_Term' );
@@ -101,6 +102,7 @@ class TestPostFactory extends \PHPUnit\Framework\TestCase {
         $importable = PostFactory::create( $post_id, $data );
 
         $this->assertEquals( $post_id, $importable->get_oopi_id() );
+        $this->assertEquals( $post_mock_title, $importable->get_post()->post_title );
         $this->assertCount( 2, $importable->get_meta() );
         $this->assertCount( 1, $importable->get_terms() );
         $this->assertCount( 1, $importable->get_attachments() );
