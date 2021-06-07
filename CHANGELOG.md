@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.0-beta] - 2020-06-07
+
+### Changed
+- A complete plugin code base overhaul. Refer to the [example post](./docs/examples/example-post.php) and the [README](./README.md) for changes in implementing importers with OOPI.
+
 ## [0.3.4] - 2020-11-16
 
 ### Fixed
