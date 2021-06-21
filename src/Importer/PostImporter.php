@@ -162,6 +162,10 @@ class PostImporter implements Importer {
 
         $post_arr = (array) $this->importable->get_post();
 
+        // Set ID from importable
+        // This is here for example to prevent same ID to be imported multiple times.
+        $post_arr['ID'] = $this->importable->get_wp_id();
+
         // Add filters for data modifications before and after importer related database actions.
         add_filter( 'wp_insert_post_data', [ $this, 'pre_insert_post' ], 1 );
         add_filter( 'wp_insert_post', [ $this, 'after_insert_post' ], 1 );
