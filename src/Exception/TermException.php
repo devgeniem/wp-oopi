@@ -11,11 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class PostException
+ * Class TermException
  *
  * @package Geniem\Oopi\Exception
  */
-class PostException extends \Exception {
+class TermException extends \Exception {
 
     /**
      * Holds errors found in validating the post.
@@ -34,7 +34,7 @@ class PostException extends \Exception {
     }
 
     /**
-     * PostException constructor.
+     * TermException constructor.
      *
      * @param string $message The error message to be thrown thrown.
      * @param int    $code    An error code to be thrown.

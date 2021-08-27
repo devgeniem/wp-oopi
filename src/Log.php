@@ -33,11 +33,11 @@ class Log {
     protected $oopi_id;
 
     /**
-     * The WP post id of the logged item.
+     * The WordPress item id of the logged item.
      *
      * @var int
      */
-    protected $post_id;
+    protected $wp_id;
 
     /**
      * The gmt timestamp of the log.
@@ -79,12 +79,12 @@ class Log {
     }
 
     /**
-     * Get the WP post id.
+     * Get the WP item id.
      *
      * @return int
      */
-    public function get_post_id() {
-        return $this->post_id;
+    public function get_wp_id() {
+        return $this->wp_id;
     }
 
     /**
@@ -131,17 +131,15 @@ class Log {
 
             // Data for the log entry.
             $this->oopi_id         = $data->get_oopi_id();
-            $this->post_id         = $data->get_post_id();
+            $this->wp_id           = $data->get_wp_id();
             $this->import_date_gmt = \current_time( 'mysql', true );
             $this->data            = $data->to_json();
             $this->status          = empty( $data->get_errors() ) ? $ok_status : $fail_status;
-
-            $this->save();
         }
         // This is fetch.
         else {
             $this->oopi_id         = isset( $data->oopi_id ) ? $data->oopi_id : null;
-            $this->post_id         = isset( $data->post_id ) ? (int) $data->post_id : null;
+            $this->wp_id           = isset( $data->wp_id ) ? (int) $data->wp_id : null;
             $this->import_date_gmt = isset( $data->import_date_gmt ) ? $data->import_date_gmt : null;
             $this->data            = isset( $data->data ) ? $data->data : null;
             $this->status          = isset( $data->status ) ? $data->status : null;
@@ -165,7 +163,7 @@ class Log {
             $table,
             [
                 'oopi_id'         => $this->oopi_id,
-                'post_id'         => $this->post_id,
+                'wp_id'           => $this->wp_id,
                 'import_date_gmt' => $this->import_date_gmt,
                 'data'            => $this->data,
                 'status'          => $this->status,
@@ -197,7 +195,7 @@ class Log {
         $row = $wpdb->get_row( $wpdb->prepare(
             "
             SELECT * FROM $table_name
-            WHERE post_id = %d
+            WHERE wp_id = %d
             AND status = %s
             ORDER BY import_date_gmt DESC;
             ",
@@ -236,13 +234,13 @@ class Log {
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (
               id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
               oopi_id VARCHAR(255) NOT NULL,
-              post_id BIGINT(20) UNSIGNED,
+              wp_id BIGINT(20) UNSIGNED,
               import_date_gmt DATETIME NULL,
               data LONGTEXT NOT NULL,
               status VARCHAR(10) NOT NULL,
               PRIMARY KEY (id),
               INDEX oopi_id (oopi_id(255)),
-              INDEX postid_date (post_id, import_date_gmt, status(10))
+              INDEX postid_date (wp_id, import_date_gmt, status(10))
             ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

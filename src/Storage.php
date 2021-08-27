@@ -5,6 +5,11 @@
 
 namespace Geniem\Oopi;
 
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
+use Geniem\Oopi\Interfaces\ErrorHandler;
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -51,6 +56,9 @@ class Storage {
      * @return int|boolean The found post id or 'false' for empty results.
      */
     public static function get_post_id_by_oopi_id( $id ) {
+        if ( ! $id ) {
+            return false;
+        }
         global $wpdb;
         // Concatenate the meta key.
         $post_meta_key = static::format_query_key( $id );
@@ -107,31 +115,6 @@ class Storage {
         $wpdb->query( $query ); // phpcs:ignore
 
         wp_cache_delete( $post_id, 'post_meta' );
-    }
-
-    /**
-     * Query the WP post id by the given attachment id.
-     *
-     * @param  int $id     The attachment id to be matched with postmeta.
-     * @return int|boolean The found attachment post id or 'false' for empty results.
-     */
-    public static function get_attachment_post_id_by_attachment_id( $id ) {
-        global $wpdb;
-        // Concatenate the meta key.
-        $post_meta_key = Settings::get( 'attachment_prefix' ) . $id;
-        // Prepare the sql.
-        $prepared = $wpdb->prepare(
-            "SELECT DISTINCT post_id FROM $wpdb->postmeta WHERE meta_key = %s",
-            $post_meta_key
-        );
-        // Fetch results from the postmeta table.
-        $results = $wpdb->get_col( $prepared ); // phpcs:ignore
-
-        if ( ! empty( $results ) ) {
-            return (int) $results[0];
-        }
-
-        return false;
     }
 
     /**
@@ -199,44 +182,5 @@ class Storage {
         }
 
         return $terms[0];
-    }
-
-    /**
-     * Create a new term.
-     *
-     * @param  Term $term Term data.
-     * @param  Post $post The current Oopi post instance.
-     *
-     * @return array|\WP_Error An array containing the `term_id` and `term_taxonomy_id`,
-     *                        WP_Error otherwise.
-     */
-    public static function create_new_term( Term $term, Post $post ) {
-        // If parent's Oopi id is set, fetch it. Default to 0.
-        $parent    = $term->get_parent();
-        $parent_id = $parent ? static::get_term_id_by_oopi_id( $parent ) : 0;
-
-        // Insert the new term.
-        $result = wp_insert_term(
-            $term->get_name(),
-            $term->get_taxonomy(),
-            [
-                'slug'        => $term->get_slug(),
-                'description' => $term->get_description(),
-                'parent'      => $parent_id,
-            ]
-        );
-        // Something went wrong.
-        if ( is_wp_error( $result ) ) {
-            $err = __( 'An error occurred creating the taxonomy term.', 'oopi' );
-            $post->set_error( 'taxonomy', $term->get_name(), $err );
-            return $result;
-        }
-
-        // Identify the Oopi term.
-        $wp_term = get_term( $result['term_id'] );
-        $term->set_term( $wp_term );
-        $term->identify();
-
-        return $result;
     }
 }

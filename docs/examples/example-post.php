@@ -3,41 +3,47 @@
  * An example of importing a post object.
  */
 
-use Geniem\Oopi\Language;
-use Geniem\Oopi\Post;
-use Geniem\Oopi\Term;
+use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 
 // The unique id for the post.
 $oopi_id = 'my_custom_id_1234';
 
 // Create a post object.
-$post = new Post( $oopi_id );
+$post = new PostImportable( $oopi_id );
 
 // In this example this post is an english version
-// of the post with the Oopi id 56.
-$post->set_language( new Language( 'en', 56 ) );
+// of the post with the Oopi id 'the_default_object_56'.
+$post->set_language( new Language( $post, 'en', 'the_default_object_56' ) );
 
 // Set the basic post data as an associative array and cast it to object.
-$post->set_post(
+$post->set_post( new WP_Post(
     (object) [
         'post_title'   => 'The post title',
         'post_name'    => sanitize_title( 'The post title' ),
+        'post_type'    => 'post',
         'post_content' => 'The post main content HTML.',
         'post_excerpt' => 'The excerpt text of the post.',
     ]
-);
+) );
 
 // The array of attachments.
 $post->set_attachments(
     [
         [
-            'filename'    => '123456.jpg',
-            'mime_type'   => 'image/jpg',
-            'id'          => '123456',
-            'alt'         => 'Alt text is stored in postmeta.',
-            'caption'     => 'This is the post excerpt.',
-            'description' => 'This is the post content.',
-            'src'         => 'http://upload-from-here.com/123456.jpg',
+            'oopi_id'      => '123456',
+            'filename'     => '123456.png',
+            'mime_type'    => 'image/png',
+            'alt'          => 'Alt text is stored in postmeta.',
+            'caption'      => 'This is the post excerpt.',
+            'description'  => 'This is the post content.',
+            'is_thumbnail' => true, // Mark this as the post thumbnail.
+            'src'          =>
+                'https://cloud.githubusercontent.com/assets/5691777/14319886/9ae46166-fc1b-11e5-9630-d60aa3dc4f9e.png',
+            'language'     => [
+                'locale' => 'en',
+            ],
         ],
     ]
 );
@@ -45,70 +51,69 @@ $post->set_attachments(
 // Postmeta data as key-value pairs.
 $post->set_meta(
     [
-        'key1'        => 'value1',
-        'another_key' => 'another_value',
-        'integer_key' => 123,
+        [
+            'key'   => 'key1',
+            'value' => 'value1',
+        ],
+        [
+            'key'   => 'another_key',
+            'value' => 'another_value',
+        ],
+        [
+            'key'   => 'integer_key',
+            'value' => 123,
+        ],
     ]
 );
 
 // Create a category term.
-$oopi_term = new Term( 'my-translated-term' );
-$oopi_term->set_data(
-    [
-        'slug'     => 'my-translated-term',
-        'name'     => 'My translated term',
-        'taxonomy' => 'category',
-    ]
-);
-// Set the term language and set the master id.
-// In this case 'my-original-term' would be the Oopi id
+$oopi_term = new TermImportable( 'my-translated-term' );
+$oopi_term->set_slug( 'my-translated-term' )
+          ->set_name( 'My translated term' )
+          ->set_taxonomy( 'category' );
+
+// Set the term language and set the main id.
+// In this case 'default-language-term' would be the Oopi id
 // of the previously imported term in the main language.
-// The term's slug must be unique.
-$oopi_term->set_language( new Language( 'en', 'my-original-term' ) );
+$oopi_term->set_language( new Language( $oopi_term, 'en', 'default-language-term' ) );
 
 // Set the term into the array.
-$post->set_taxonomies(
+$post->set_terms(
     [
         $oopi_term,
     ]
 );
 
-// Advanced Custom Fields data.
-$post->set_acf(
-    [
-        [
-            'key'   => 'repeater_field_key',
-            'value' => [
-                [
-                    'sub_field_key'         => '...',
-                    'another_sub_field_key' => '...',
-                ],
-                [
-                    'sub_field_key'         => '...',
-                    'another_sub_field_key' => '...',
-                ],
-            ],
-        ],
-        [
-            'key'   => 'single_field_key',
-            'value' => '...',
-        ],
-        [
-            'key'   => 'attachment_field_key',
-            'value' => 'oopi_attachment_123456',
-        ],
-    ]
-);
+// Uncomment if you have ACF activated and want to test field saving.
+//$post->set_acf(
+//    [
+//        [
+//            'key'   => 'single_field_key',
+//            'value' => 'single value',
+//        ],
+//        [
+//            // For ACF images the value should be the OOPi id for referencing the correct attachment object.
+//            'key'   => 'attachment_field_key',
+//            'value' => '123456', // This is the OOPI id of the attachment.
+//            'type'  => 'image', // Note the different type.
+//        ],
+//    ]
+//);
 
 // Try to save the post.
 try {
     // If the data was invalid or errors occur while saving the post into the dabase, an exception is thrown.
-    $post->save();
+    echo intval( $post->import() );
 }
 catch ( \Geniem\Oopi\Exception\PostException $e ) {
+    // For this example we just dump and log the errors.
     foreach ( $e->get_errors() as $scope => $errors ) {
-        foreach ( $errors as $key => $message ) {
-            error_log( "Importer error in $scope: " . $message );
+        foreach ( $errors as $error ) {
+            $message = $error['message'];
+            $data    = $error['data'];
+
+            var_dump( $data ); // phpcs:ignore
+            error_log( "Importer error in $scope: " . $message ); // phpcs:ignore
         }
     }
 }

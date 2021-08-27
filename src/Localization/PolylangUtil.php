@@ -1,6 +1,6 @@
 <?php
 /**
- * Polylang translations controller.
+ * Utility methods for controlling translations with Polylang.
  */
 
 namespace Geniem\Oopi\Localization;
@@ -10,23 +10,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Classes
-use Geniem\Oopi\Language;
-use Geniem\Oopi\Settings;
+use Geniem\Oopi\Attribute\Language;
+use Geniem\Oopi\Importable\PostImportable;
+use Geniem\Oopi\Importable\TermImportable;
 use Geniem\Oopi\Storage;
-use Geniem\Oopi\Post;
-use Geniem\Oopi\Term;
-use Geniem\Oopi\Util;
+use PLL_Admin;
+use PLL_Frontend;
+use PLL_REST_Request;
+use PLL_Settings;
 
 /**
- * Class Polylang
+ * Class PolylangUtil
  *
  * @package Geniem\Oopi
  */
-class Polylang {
+class PolylangUtil {
+
     /**
-     * Holds polylang.
+     * Holds the current Polylang plugin class instance
+     * in the given context. Typing is bad, but it's not our fault.
      *
-     * @var object|null
+     * @var PLL_Settings|PLL_Admin|PLL_REST_Request|PLL_Frontend|null
      */
     protected static $polylang = null;
 
@@ -40,7 +44,7 @@ class Polylang {
     /**
      * Holds current attachment id.
      *
-     * @var string
+     * @var array
      */
     protected static $current_attachment_ids = [];
 
@@ -75,9 +79,9 @@ class Polylang {
     }
 
     /**
-     * Returns the polylang object.
+     * Returns the Polylang plugin instance.
      *
-     * @return object|null Polylang object.
+     * @return object|null Polylang plugin instance.
      */
     public static function pll() {
         return self::$polylang;
@@ -90,18 +94,6 @@ class Polylang {
      */
     public static function language_list() {
         return self::$languages;
-    }
-
-    /**
-     * Set attachment language by post_id
-     *
-     * @param int    $attachment_post_id Attachment wp id.
-     * @param string $language The PLL language code.
-     */
-    public static function set_attachment_language( $attachment_post_id, $language ) {
-        if ( $language ) {
-            pll_set_post_language( $attachment_post_id, $language );
-        }
     }
 
     /**
@@ -121,83 +113,14 @@ class Polylang {
     }
 
     /**
-     * Save Polylang locale.
-     *
-     * @param Post $post The current importer post object.
-     * @return void
-     */
-    public static function save_pll_locale( &$post ) {
-
-        // Get needed variables
-        $post_id  = $post->get_post_id();
-        $wp_post  = get_post( $post_id );
-        $language = $post->get_language();
-        $locale   = $language->get_locale();
-        $master   = $language->get_master_oopi_id();
-
-        if ( $locale ) {
-
-            // Set post locale.
-            \pll_set_post_language( $post_id, $locale );
-
-            // If a post name was set in the data and it doesn't match the database,
-            // update post name to allow PLL to handle unique slugs.
-            if (
-                $post->get_post_name() &&
-                $post->get_post_name() !== $wp_post->post_name
-            ) {
-                wp_update_post(
-                    [
-                        'ID'        => $post->get_post_id(),
-                        'post_name' => $post->get_post_name(),
-                    ]
-                );
-            }
-
-            // Run only if master exists
-            if ( $master ) {
-
-                // Get master post id for translation linking
-                $master_post_id = Storage::get_post_id_by_oopi_id( $master );
-                $master_locale  = \pll_get_post_language( $master_post_id );
-
-                // Set the link for translations if a matching post was found.
-                if ( $master_post_id ) {
-
-                    // Get current translation.
-                    $current_translations = \pll_get_post_translations( $master_post_id );
-
-                    // Set up new translations.
-                    $new_translations = [
-                        $master_locale => $master_post_id,
-                        $locale        => $post_id,
-                    ];
-
-                    $parsed_args = \wp_parse_args( $new_translations, $current_translations );
-
-                    // Link translations.
-                    \pll_save_post_translations( $parsed_args );
-                }
-            }
-        }
-        else {
-            $post->set_error(
-                'pll',
-                $i18n,
-                __( 'i18n information is set, but it is missing data.', 'oopi' )
-            );
-        }
-    }
-
-    /**
      * Sets the term language.
      *
-     * @param Term $term The Oopi term.
-     * @param Post $post The Oopi post.
+     * @param TermImportable $term The Oopi term.
+     * @param PostImportable $post The Oopi post.
      *
      * @return void
      */
-    public static function set_term_language( Term $term, Post $post ) {
+    public static function set_term_language( TermImportable $term, PostImportable $post ) {
         $wp_term = $term->get_term();
 
         if ( ! $wp_term instanceof \WP_Term ) {
@@ -229,8 +152,8 @@ class Polylang {
         pll_set_term_language( $wp_term->term_id, $locale );
 
         // Try to set translations.
-        if ( $language_obj instanceof Language && $language_obj->get_master_oopi_id() ) {
-            $master = $language_obj->get_master_oopi_id();
+        if ( $language_obj instanceof Language && $language_obj->get_main_oopi_id() ) {
+            $master = $language_obj->get_main_oopi_id();
 
             // Get master post id for translation linking
             $master_term_id = Storage::get_term_id_by_oopi_id( $master );
@@ -272,4 +195,16 @@ class Polylang {
             return strpos( $key, $identificator ) === false;
         } );
     }
+
+    /**
+     * Check if a language is installed.
+     *
+     * @param string $locale The PLL locale code.
+     *
+     * @return bool
+     */
+    public static function language_exists( string $locale ) : bool {
+        return in_array( $locale, pll_languages_list(), true );
+    }
+
 }
