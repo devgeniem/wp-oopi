@@ -39,6 +39,7 @@ class Settings {
         self::set( 'TMP_FOLDER', '/tmp/' );
         self::set( 'LOG_STATUS_OK', 'OK' );
         self::set( 'LOG_STATUS_FAIL', 'FAIL' );
+        self::set( 'CRON_INTERVAL_CLEAN_LOG', 'daily' );
     }
 
     /**

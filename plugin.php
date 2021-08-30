@@ -51,11 +51,23 @@ class Plugin {
     ];
 
     /**
-     * Create required database tables on install.
+     * Run tasks when plugin is activated.
      */
     public static function install() {
         // Install log handler.
         Log::install();
+
+        // Register cron jobs.
+        CronJobs::install();
+    }
+
+
+    /**
+     * Run tasks when plugin is deactivated.
+     */
+    public static function uninstall() {
+        // Remove cron jobs.
+        CronJobs::uninstall();
     }
 
     /**
@@ -78,6 +90,9 @@ class Plugin {
 
         // Initialize the import handlers for importables.
         self::set_initial_import_handlers();
+
+        // Register the cron job hooks.
+        CronJobs::init();
 
         // Initialize plugin controllers after plugins are loaded.
         add_action( 'wp_loaded', function() {
@@ -144,4 +159,7 @@ class Plugin {
 Plugin::init();
 
 // Run installation on activation hook.
-register_activation_hook( __FILE__, [ Plugin::class, 'install' ] );
+\register_activation_hook( __FILE__, [ Plugin::class, 'install' ] );
+
+// Run uninstallation on deactivation hook.
+\register_deactivation_hook( __FILE__, [ Plugin::class, 'uninstall' ] );
