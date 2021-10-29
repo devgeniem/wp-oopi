@@ -140,6 +140,7 @@ The `\Geniem\Oopi\Settings\` class is used to set and load all plugin settings. 
 - Setting key `table_name`, constant `OOPI_TABLE_NAME`, default value `geniem_importer_log`.
 - Setting key `log_status_ok`, constant `OOPI_LOG_STATUS_OK`, default value `'OK'`.
 - Setting key `log_status_fail`, constant `OOPI_LOG_STATUS_FAIL`, default value `'FAIL'`.
+- Setting key `cron_interval_clean_log`, constant `OOPI_CRON_INTERVAL_CLEAN_LOG`, default `'daily'`.
 
 ### Accessing settings
 
@@ -187,6 +188,12 @@ The plugin creates a custom table into the WordPress database called `oopi_log`.
 The log provides a rollback feature. If an import fails the importer tries to roll back the previous successful import. If no previous imports with the `OK` status are found, the imported object is set into `draft` state to prevent front-end users from accessing posts with malformed data.
 
 To disable the rollback feature set the `OOPI_ROLLBACK_DISABLE` constant with a value of `true`.
+
+### Log cleanup
+
+The plugin registers a log cleaner cronjob on plugin activation. The cronjob deletes all rows with OK status by `wp_id` except the latest one. This enables keeping the log table clean while maintaining full support for rollback feature.
+
+The cronjob is run with `'daily'` interval by default, it can be changed with `OOPI_CRON_INTERVAL_CLEAN_LOG` constant. Cronjob scheduling can be disabled by defining the constant as `false`.
 
 ## Tests
 
