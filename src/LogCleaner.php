@@ -38,7 +38,6 @@ class LogCleaner {
      * @return void
      */
     public static function run() : void {
-        \error_log( 'Running cron' );
         global $wpdb;
 
         $table_name = Log::get_table_name();
@@ -91,7 +90,5 @@ class LogCleaner {
         );
 
         $wpdb->query( $query );
-
-        \error_log( 'OOPI log table cleaned' );
     }
 }

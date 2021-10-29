@@ -60,7 +60,6 @@ class CronJobs {
                 continue;
             }
 
-            \error_log( 'setting OOPI hook' );
             \add_action( $job::HOOK, [ $job, 'run' ] );
         }
     }
@@ -80,8 +79,7 @@ class CronJobs {
             }
 
             if ( ! \wp_next_scheduled( $job::HOOK ) ) {
-                \error_log( 'scheduled OOPI cron event' );
-                \wp_schedule_event( \time(), $interval, $job::HOOK );
+                \wp_schedule_event( time(), $interval, $job::HOOK );
             }
         }
     }
