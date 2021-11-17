@@ -202,7 +202,7 @@ If you need to debug the tests, the container comes with [Xdebug 3](https://xdeb
 
 ### Travis CI
 
-This repository also contains a GitHub integration for [Travic CI](https://travis-ci.org/). All commits to the `main` branch will be automatically tested with Travis. 
+This repository also contains a GitHub integration for [Travic CI](https://travis-ci.com/). All commits to the `main` branch will be automatically tested with Travis. 
 
 ## Changelog
 
