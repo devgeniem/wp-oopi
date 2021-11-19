@@ -73,7 +73,7 @@ class CronJobs {
         $cronjobs = static::get_cronjobs();
         foreach ( $cronjobs as $job ) {
             $key       = $job::KEY;
-            $interval  = Settings::get( "cron_interval_$key" );
+            $interval  = Settings::get( "cron_interval_{$key}" );
             if ( false === $interval ) {
                 continue;
             }
