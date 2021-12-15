@@ -6,7 +6,7 @@
         {
             "name": "Ville Siltala",
             "email": "ville.siltala@geniem.com",
-            "homepage": "http://github.com/villesiltala",
+            "homepage": "https://github.com/villesiltala",
             "role": "Developer"
         },
         {
@@ -19,17 +19,23 @@
     "keywords": [
         "wordpress", "plugin", "importer", "geniem"
     ],
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
     "license": "GPL-3.0",
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "require": {
         "php": ">=7.4",
-        "composer/installers": "^1.0.12"
+        "composer/installers": "^1.0.12 || ^2"
     },
     "autoload": {
-        "psr-4": {"Geniem\\Oopi\\": "src/"}
+        "psr-4": {
+            "Geniem\\Oopi\\": ["src/", "plugin.php"]
+        }
     },
     "require-dev": {
-        "10up/wp_mock": "dev-master",
+        "roave/security-advisories": "dev-latest",
+        "10up/wp_mock": "^0.4.2",
         "phpunit/phpunit": "^9"
     }
 }

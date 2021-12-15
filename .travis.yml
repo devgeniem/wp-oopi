@@ -12,6 +12,8 @@ notifications:
 
 php:
   - nightly
+  - 8.1
+  - 8.0
   - 7.4
   - 7.3
 
