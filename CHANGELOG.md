@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Enabled PHP 8.0 and PHP 8.1 usage
+
 ### Fixed
 
 - Fixed autoloading, added composer test + more #17
