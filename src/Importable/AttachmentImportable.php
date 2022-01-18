@@ -5,6 +5,8 @@
 
 namespace Geniem\Oopi\Importable;
 
+use Geniem\Oopi\Attribute\AcfField;
+use Geniem\Oopi\Factory\Attribute\AcfFieldFactory;
 use Geniem\Oopi\Importer\AttachmentImporter;
 use Geniem\Oopi\Interfaces\ErrorHandler;
 use Geniem\Oopi\Interfaces\Importable;
@@ -280,6 +282,15 @@ class AttachmentImportable implements Importable {
     }
 
     /**
+     * Get the acf.
+     *
+     * @return AcfField[]
+     */
+    public function get_acf() : array {
+        return $this->acf;
+    }
+
+    /**
      * Set the parent's WP id for the attachment.
      *
      * @param int|null $parent_wp_id The parent WP id.
@@ -303,5 +314,30 @@ class AttachmentImportable implements Importable {
         $this->parent_oopi_id = $parent_oopi_id;
 
         return $this;
+    }
+
+    /**
+     * Sets the post ACF data.
+     *
+     * @param array $acf_data The ACF data in an associative array.
+     */
+    public function set_acf( array $acf_data = [] ) {
+        // Cast to AcfField objects.
+        $this->acf = array_filter( array_map( function( $field ) {
+            if ( $field instanceof AcfField ) {
+                return $field;
+            }
+
+            try {
+                return AcfFieldFactory::create( $this, $field );
+            }
+            catch ( \Exception $e ) {
+                $this->error_handler->set_error(
+                    'Unable to create the post meta attribute. Error: ' . $e->getMessage(),
+                    $field
+                );
+            }
+            return null;
+        }, $acf_data ) );
     }
 }

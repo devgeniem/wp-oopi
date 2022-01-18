@@ -10,6 +10,7 @@ use Geniem\Oopi\Exception\TypeException;
 use Geniem\Oopi\Factory\Importable\TermFactory;
 use Geniem\Oopi\Importable\PostImportable;
 use Geniem\Oopi\Importable\TermImportable;
+use Geniem\Oopi\Importable\AttachmentImportable;
 use Geniem\Oopi\Interfaces\Attribute;
 use Geniem\Oopi\Interfaces\AttributeSaver;
 use Geniem\Oopi\Interfaces\Importable;
@@ -48,6 +49,9 @@ class AcfFieldSaver implements AttributeSaver {
         if ( $importable instanceof TermImportable && $attribute instanceof AcfField ) {
             return $this->save_term_acf( $importable, $attribute );
         }
+        if ( $importable instanceof AttachmentImportable && $attribute instanceof AcfField ) {
+            return $this->save_post_acf( $importable, $attribute );
+        }
 
         return null;
     }
@@ -60,7 +64,7 @@ class AcfFieldSaver implements AttributeSaver {
      *
      * @return bool
      */
-    protected function save_post_acf( PostImportable $post, AcfField $field ) {
+    protected function save_post_acf( Importable $post, AcfField $field ) {
         $value = $field->get_value();
         $key   = $field->get_key();
 
