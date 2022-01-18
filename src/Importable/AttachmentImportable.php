@@ -287,7 +287,7 @@ class AttachmentImportable implements Importable {
      * @return AcfField[]
      */
     public function get_acf() : array {
-        return $this->acf;
+        return $this->acf ?? [];
     }
 
     /**
