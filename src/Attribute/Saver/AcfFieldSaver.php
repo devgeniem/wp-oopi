@@ -59,8 +59,8 @@ class AcfFieldSaver implements AttributeSaver {
     /**
      * Save field data for a post object.
      *
-     * @param PostImportable $post  The post importable.
-     * @param AcfField       $field The ACF field attribute.
+     * @param Importable $post  The post importable.
+     * @param AcfField   $field The ACF field attribute.
      *
      * @return bool
      */

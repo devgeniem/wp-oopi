@@ -95,6 +95,13 @@ class AttachmentImportable implements Importable {
     protected $parent_oopi_id = '';
 
     /**
+     * An array of Advanced Custom Fields data.
+     *
+     * @var AcfField[]
+     */
+    protected array $acf = [];
+
+    /**
      * Defines whether this file should be treated as the post thumbnail or not.
      *
      * @var bool

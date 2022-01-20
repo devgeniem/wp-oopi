@@ -150,13 +150,13 @@ class AttachmentImporter implements Importer {
             update_post_meta( $attachment_post_id, '_wp_attachment_image_alt', $alt_text );
         }
 
+        // Set the attachment post_id.
+        $importable->set_wp_id( $attachment_post_id );
+
         // Save acf data.
         if ( ! empty( $importable->get_acf() ) ) {
             $this->save_acf( $importable );
         }
-
-        // Set the attachment post_id.
-        $importable->set_wp_id( $attachment_post_id );
 
         // Store the ids to the importable.
         if ( $importable instanceof PostImportable ) {
