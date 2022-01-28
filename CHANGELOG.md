@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Schedule log cleaner cronjob on plugin activation. The cronjob deletes all rows with OK status by ID except the latest one.
+- Schedule log cleaner cronjob on plugin activation. The cronjob deletes rows from log table older than the threshold set.
 
 ### Fixed
 - Fixed autoloading, added composer test + more #17

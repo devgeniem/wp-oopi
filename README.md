@@ -191,7 +191,7 @@ To disable the rollback feature set the `OOPI_ROLLBACK_DISABLE` constant with a 
 
 ### Log cleanup
 
-The plugin registers a log cleaner cronjob on plugin activation. The cronjob deletes all rows with OK status by `wp_id` except the latest one. This enables keeping the log table clean while maintaining full support for rollback feature.
+The plugin registers a log cleaner cronjob on plugin activation. The cronjob deletes all rows from the log table by status and import date threshold. Both the statuses and the threshold can be modified with filters `oopi_cron_log_cleaner_statuses` and `oopi_cron_log_cleaner_threshold`.
 
 The cronjob is run with `'daily'` interval by default, it can be changed with `OOPI_CRON_INTERVAL_CLEAN_LOG` constant. Cronjob scheduling can be disabled by defining the constant as `false`.
 

@@ -27,13 +27,10 @@ class LogCleaner {
      * The hook used for this cron job.
      */
     const HOOK = 'oopi_cron_clean_log';
-    
+
     /**
      * This handles cleaning the log table.
-     *
-     * This deletes all rows with OK status by ID except the latest one.
-     * This enables keeping the log table clean while maintaining the
-     * ability to rollback individual posts.
+     * Deletes all rows older than the set threshold.
      *
      * @return void
      */
@@ -41,54 +38,46 @@ class LogCleaner {
         global $wpdb;
 
         $table_name = Log::get_table_name();
-        $ok_status  = Settings::get( 'log_status_ok' );
-        $query      = $wpdb->prepare(
-            "
-            DELETE wlo1.*
-            FROM $table_name wlo1
-            JOIN (
-                SELECT 
-                    wp_id,
-                    COALESCE(
-                        (
-                            SELECT import_date_gmt
-                            FROM $table_name wlo2
-                            WHERE wlo2.wp_id = wlo4.wp_id
-                                AND wlo2.status = %s
-                            ORDER BY
-                                wlo2.wp_id DESC, wlo2.import_date_gmt DESC
-                            LIMIT 1, 1
-                        ),
-                        CAST('0001-01-01' AS DATETIME)
-                    ) AS mts,
-                    COALESCE(
-                        (
-                            SELECT id
-                            FROM $table_name wlo2
-                            WHERE wlo2.wp_id = wlo4.wp_id
-                                AND wlo2.status = %s
-                            ORDER BY
-                                wlo2.wp_id DESC, wlo2.import_date_gmt DESC, wlo2.id DESC
-                            LIMIT 1, 1
-                        ),
-                        -1
-                    ) AS mid
-                FROM (
-                    SELECT DISTINCT wp_id
-                    FROM $table_name wlo3
-                ) wlo4
-            ) wlo3
-            ON wlo1.wp_id = wlo3.wp_id
-            AND (wlo1.import_date_gmt, wlo1.id) <= (mts, mid)
-            WHERE wlo1.status = %s
-            ",
-            [
-                $ok_status,
-                $ok_status,
-                $ok_status,
-            ]
+
+        /**
+         * Allow filtering the statuses to remove.
+         * Defaults to removing rows with OK status only.
+         * Pass empty array to clean all rows regardless of status.
+         */
+        $statuses   = \apply_filters(
+            'oopi_cron_log_cleaner_statuses',
+            [ Settings::get( 'log_status_ok' ) ]
+        );
+        
+        /**
+         * Set the threshold for the log cleaner. Rows older than the thresholds
+         * are removed. Only use values compatible with MySQL intervals.
+         * Empty string can be passed to ignore import date.
+         */
+        $threshold = \apply_filters(
+            'oopi_cron_log_cleaner_threshold',
+            '2 WEEK'
         );
 
-        $wpdb->query( $query );
+        $conditions = [];
+
+        if ( is_array( $statuses ) && ! empty( $statuses ) ) {
+            $status_list = '"' . implode( '", "', $statuses ) . '"';
+            $conditions[] = "status IN ($status_list)";
+        }
+
+        if ( is_string( $threshold ) && ! empty( $threshold ) ) {
+            $conditions[] = "import_date_gmt < NOW() - INTERVAL $threshold";
+        }
+
+        $where = implode( ' AND ', $conditions );
+
+        $raw_query = "DELETE FROM $table_name";
+
+        if ( ! empty( $where ) ) {
+            $raw_query .= " WHERE $where";
+        }
+
+        $wpdb->query( $wpdb->prepare( $raw_query ) );
     }
 }
