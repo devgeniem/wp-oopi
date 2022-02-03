@@ -6,12 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### Fixed
-
-- Fixed autoloading, added composer test + more #17
-- Fixed inserting ACF data to attachments
-
 ## [Released]
+
+## [1.0.1] - 2022-02-03
+
+## Fixed
+
+- Fixed inserting ACF data to attachments
+- Fixed autoloading, added composer test + more #17
 
 ## [1.0.0] - 2020-08-27
 
