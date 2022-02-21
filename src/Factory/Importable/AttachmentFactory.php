@@ -42,6 +42,7 @@ class AttachmentFactory implements ImportableFactory {
         $is_thumbnail   = Util::get_prop( $data, 'is_thumbnail', false );
         $meta           = Util::get_prop( $data, 'meta', null );
         $language       = Util::get_prop( $data, 'language', null );
+        $acf            = Util::get_prop( $data, 'acf', null );
 
         if ( $title ) {
             $importable->set_title( $title );
@@ -91,6 +92,11 @@ class AttachmentFactory implements ImportableFactory {
             catch ( TypeException $e ) {
                 $importable->get_error_handler()->set_error( $e->getMessage(), $e );
             }
+        }
+
+        // Advanced Custom Fields
+        if ( is_array( $acf ) ) {
+            $importable->set_acf( $acf );
         }
 
         return $importable;
