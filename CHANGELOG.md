@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Schedule log cleaner cronjob on plugin activation. The cronjob deletes rows from log table older than the threshold set.
+
+### Fixed
+- Fixed autoloading, added composer test + more #17
+
 ## [Released]
 
 ## [1.0.1] - 2022-02-03
