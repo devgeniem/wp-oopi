@@ -37,5 +37,10 @@
         "roave/security-advisories": "dev-latest",
         "10up/wp_mock": "^0.4.2",
         "phpunit/phpunit": "^9"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
     }
 }
