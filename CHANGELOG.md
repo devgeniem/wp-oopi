@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Enabled PHP 8.0 and PHP 8.1 usage #18
+
 ## [Released]
 
 ## [1.1.0] - 2022-02-21
@@ -18,9 +22,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.1] - 2022-02-03
 
-## Fixed
+### Fixed
 
-- Fixed inserting ACF data to attachments
+- Fixed inserting ACF data to attachments #19
 - Fixed autoloading, added composer test + more #17
 
 ## [1.0.0] - 2020-08-27
