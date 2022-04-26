@@ -64,8 +64,13 @@ class AcfFieldSaver implements AttributeSaver {
         $value = $field->get_value();
         $key   = $field->get_key();
 
+        // Filter the field before the update_field.
+        $field = \apply_filters( 'oopi_before_save_post_acf', $field, $post );
+        $field = \apply_filters( 'oopi_before_post_acf_type_{$field->get_type()}', $field, $post );
+
         switch ( $field->get_type() ) {
             case 'term':
+
                 $terms = [];
                 foreach ( $field->get_value() as $term ) {
                     if ( ! $term instanceof TermImportable ) {
@@ -91,6 +96,7 @@ class AcfFieldSaver implements AttributeSaver {
                 break;
 
             case 'image':
+
                 // Check if image exists.
                 $attachment_post_id = Storage::get_post_id_by_oopi_id( $value );
                 if ( ! empty( $attachment_post_id ) ) {
