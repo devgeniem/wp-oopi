@@ -66,7 +66,7 @@ class AcfFieldSaver implements AttributeSaver {
 
         // Filter the field before the update_field.
         $field = \apply_filters( 'oopi_before_save_post_acf', $field, $post );
-        $field = \apply_filters( 'oopi_before_post_acf_type_{$field->get_type()}', $field, $post );
+        $field = \apply_filters( 'oopi_before_save_post_acf/type={$field->get_type()}', $field, $post );
 
         switch ( $field->get_type() ) {
             case 'term':

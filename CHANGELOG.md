@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
+## [1.0.1] - 2022-04-26
+- Added filters oopi_before_save_post_acf and oopi_before_save_post_acf_type={field_type}.
+
 ## [1.0.0] - 2020-08-27
 
 ### Changed
