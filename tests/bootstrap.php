@@ -1,18 +1,15 @@
 <?php
 /**
- * Bootsrtap PHPUnit tests.
+ * Bootstrap PHPUnit tests.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', __DIR__ . '/../' );
 }
 
-function define_constanst() {
-    if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
-        define( 'HOUR_IN_SECONDS', 60 * 60 * 60 );
-    }
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+    define( 'HOUR_IN_SECONDS', 60 * 60 * 60 );
 }
-define_constanst();
 
 /**
  * Define mocks for WP functionalities.
@@ -35,7 +32,15 @@ function wp_mocks() {
     // Mock the plugin activation hook.
     WP_Mock::userFunction( 'register_activation_hook',
         [
-            // Nothig to do with the result.
+            // Nothing to do with the result.
+            'return' => true,
+        ]
+    );
+
+    // Mock the plugin deactivation hook.
+    WP_Mock::userFunction( 'register_deactivation_hook',
+        [
+            // Nothing to do with the result.
             'return' => true,
         ]
     );
@@ -43,11 +48,11 @@ function wp_mocks() {
     // Mock an anonymous object to mock category as a registered taxonomy.
     $category = Mockery::mock();
     $category->shouldReceive( 'get_taxonomy' )
+        ->set( 'name', 'Test' )
+        ->set( 'slug', 'test' )
+        ->set( 'description', '' )
+        ->set( 'taxonomy', 'category' )
         ->andReturn( 'category' );
-    $category->name = 'Test';
-    $category->slug = 'test';
-    $category->description = '';
-    $category->taxonomy = 'category';
 
     WP_Mock::userFunction( 'get_taxonomies', [
         'return' => [

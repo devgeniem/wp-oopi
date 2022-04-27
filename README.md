@@ -140,6 +140,7 @@ The `\Geniem\Oopi\Settings\` class is used to set and load all plugin settings. 
 - Setting key `table_name`, constant `OOPI_TABLE_NAME`, default value `geniem_importer_log`.
 - Setting key `log_status_ok`, constant `OOPI_LOG_STATUS_OK`, default value `'OK'`.
 - Setting key `log_status_fail`, constant `OOPI_LOG_STATUS_FAIL`, default value `'FAIL'`.
+- Setting key `cron_interval_clean_log`, constant `OOPI_CRON_INTERVAL_CLEAN_LOG`, default `'daily'`.
 
 ### Accessing settings
 
@@ -188,6 +189,12 @@ The log provides a rollback feature. If an import fails the importer tries to ro
 
 To disable the rollback feature set the `OOPI_ROLLBACK_DISABLE` constant with a value of `true`.
 
+### Log cleanup
+
+The plugin registers a log cleaner cronjob on plugin activation. The cronjob deletes all rows from the log table by status and import date threshold. Both the statuses and the threshold can be modified with filters `oopi_cron_log_cleaner_statuses` and `oopi_cron_log_cleaner_threshold`.
+
+The cronjob is run with `'daily'` interval by default, it can be changed with `OOPI_CRON_INTERVAL_CLEAN_LOG` constant. Cronjob scheduling can be disabled by defining the constant as `false`.
+
 ## Tests
 
 ### Local tests
@@ -202,7 +209,7 @@ If you need to debug the tests, the container comes with [Xdebug 3](https://xdeb
 
 ### Travis CI
 
-This repository also contains a GitHub integration for [Travic CI](https://travis-ci.org/). All commits to the `main` branch will be automatically tested with Travis. 
+This repository also contains a GitHub integration for [Travic CI](https://travis-ci.com/). All commits to the `master` branch will be automatically tested with Travis. 
 
 ## Changelog
 

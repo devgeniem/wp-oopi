@@ -153,6 +153,11 @@ class AttachmentImporter implements Importer {
         // Set the attachment post_id.
         $importable->set_wp_id( $attachment_post_id );
 
+        // Save acf data.
+        if ( ! empty( $importable->get_acf() ) ) {
+            $this->save_acf( $importable );
+        }
+
         // Store the ids to the importable.
         if ( $importable instanceof PostImportable ) {
             $importable->map_attachment_id( $oopi_id, $attachment_post_id );
@@ -412,5 +417,23 @@ class AttachmentImporter implements Importer {
         // Set the indexed indentificator.
         // Example: meta_key = 'oopi_id_12345', meta_value = 12345
         update_post_meta( $wp_id, $index_key, $oopi_id );
+    }
+
+    /**
+     * Saves the acf data of the post.
+     */
+    protected function save_acf( $importable ) {
+
+        foreach ( $importable->get_acf() as $field_attribute ) {
+            try {
+                $field_attribute->save();
+            }
+            catch ( \Exception $exception ) {
+                $this->error_handler->set_error(
+                    $exception->getMessage(),
+                    $exception
+                );
+            }
+        }
     }
 }

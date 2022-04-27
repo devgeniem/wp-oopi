@@ -6,10 +6,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Enabled PHP 8.0 and PHP 8.1 usage #18
+
 ## [Released]
 
-## [1.0.1] - 2022-04-26
-- Added filters oopi_before_save_post_acf and oopi_before_save_post_acf_type={field_type}.
+## [1.2.0] - 2022-04-27
+
+### Added
+- Filters `oopi_before_save_post_acf` and `oopi_before_save_post_acf/type={field_type}`.
+
+## [1.1.0] - 2022-02-21
+
+### Added
+- Schedule log cleaner cronjob on plugin activation. The cronjob deletes rows from log table older than the threshold set.
+
+### Fixed
+- Fixed autoloading, added composer test + more #17
+
+## [1.0.1] - 2022-02-03
+
+### Fixed
+
+- Fixed inserting ACF data to attachments #19
+- Fixed autoloading, added composer test + more #17
 
 ## [1.0.0] - 2020-08-27
 
