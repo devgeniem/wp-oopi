@@ -225,8 +225,9 @@ class AttachmentImporter implements Importer {
             ] );
         }
 
-        // Get filename from the url.
-        $file_name = basename( $attachment_src );
+        // Get filename from the url and remove query params.
+        $file_name = basename( parse_url( $attachment_src, PHP_URL_PATH ) );
+
         // Exif related variables
         $exif_imagetype            = exif_imagetype( $attachment_src );
         $exif_supported_imagetypes = [
