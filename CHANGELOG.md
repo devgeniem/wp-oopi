@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
+## [1.2.1] - 2023-01-31
+- Adds `parse_url( $url, PHP_URL_PATH )` to parse attachment importable's url.
+
 ## [1.2.0] - 2022-04-27
 
 ### Added
