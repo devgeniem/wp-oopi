@@ -238,11 +238,15 @@ class AttachmentImporter implements Importer {
 
         // If SSL is ignored we need to use different methods to check file extension from the source file.
         // Always prefer to use SSL.
-        if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
+        if (
+            defined( 'OOPI_IGNORE_SSL' ) &&
+            OOPI_IGNORE_SSL &&
+            is_callable( 'exif_read_data' )
+        ) {
 
             $this->strip_exif_by_file_extension( $local_image, $attachment_src, $error_handler );
         }
-        else {
+        elseif ( is_callable( 'exif_read_data' ) ) {
 
             $this->strip_exif_by_exif_data( $local_image, $attachment_src, $error_handler );
         }
@@ -308,10 +312,8 @@ class AttachmentImporter implements Importer {
         }
 
         // If exif_read_data is callable and file type could contain exif data.
-        if (
-            is_callable( 'exif_read_data' ) &&
-            in_array( $exif_imagetype, $exif_supported_imagetypes, true )
-        ) {
+        if ( in_array( $exif_imagetype, $exif_supported_imagetypes, true ) ) {
+
             // Manipulate image exif data.
             $this->strip_unsupported_exif_data( $local_image, $error_handler );
         }
@@ -361,10 +363,8 @@ class AttachmentImporter implements Importer {
         ];
 
         // If exif_read_data is callable and file type could contain exif data.
-        if (
-            is_callable( 'exif_read_data' ) &&
-            in_array( $file_extension, $exif_supported_file_extensions, true )
-        ) {
+        if ( in_array( $file_extension, $exif_supported_file_extensions, true ) ) {
+
             // Manipulate image exif data.
             $this->strip_unsupported_exif_data( $local_image, $error_handler );
         }
