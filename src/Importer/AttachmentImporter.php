@@ -217,6 +217,7 @@ class AttachmentImporter implements Importer {
         // If you want to ignore SSL Certificate chain errors, or just yeet it,
         // define OOPI_IGNORE_SSL in your migration worker and set it true.
         if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
+
             $stream_context = stream_context_create( [
                 'ssl' => [
                     'verify_peer'      => false,
@@ -224,6 +225,50 @@ class AttachmentImporter implements Importer {
                 ],
             ] );
         }
+
+        // Get filename from the url and remove query params.
+        $file_name = basename( parse_url( $attachment_src, PHP_URL_PATH ) );
+
+        // Construct file local url.
+        $tmp_folder  = Settings::get( 'tmp_folder' );
+        $local_image = $tmp_folder . $file_name;
+
+        // Copy file to local image location
+        copy( $attachment_src, $local_image, $stream_context );
+
+        // If SSL is ignored we need to use different methods to check file extension from the source file.
+        // Always prefer to use SSL.
+        if ( defined( 'OOPI_IGNORE_SSL' ) && OOPI_IGNORE_SSL ) {
+
+            $this->strip_exif_by_file_extension( $local_image, $attachment_src, $error_handler );
+        }
+        else {
+
+            $this->strip_exif_by_exif_data( $local_image, $attachment_src, $error_handler );
+        }
+
+        // Get file from local temp folder.
+        $file_content = file_get_contents( $local_image, false, $stream_context ); // phpcs:ignore
+
+        // Upload file to uploads.
+        $upload = \wp_upload_bits( $file_name, null, $file_content );
+
+        // After upload process we are free to delete the tmp image.
+        unlink( $local_image );
+
+        return $upload;
+    }
+
+    /**
+     * Strip exif by exif data.
+     *
+     * @param string       $local_image Local image path.
+     * @param string       $attachment_src Source file url.
+     * @param ErrorHandler $error_handler An error handler.
+     *
+     * @return array The response array from wp_upload_bits().
+     */
+    private function strip_exif_by_exif_data( $local_image, $attachment_src, $error_handler ) {
 
         // Get filename from the url and remove query params.
         $file_name = basename( parse_url( $attachment_src, PHP_URL_PATH ) );
@@ -262,13 +307,6 @@ class AttachmentImporter implements Importer {
             $file_name .= $exif_types[ $exif_imagetype - 1 ];
         }
 
-        // Construct file local url.
-        $tmp_folder  = Settings::get( 'tmp_folder' );
-        $local_image = $tmp_folder . $file_name;
-
-        // Copy file to local image location
-        copy( $attachment_src, $local_image, $stream_context );
-
         // If exif_read_data is callable and file type could contain exif data.
         if (
             is_callable( 'exif_read_data' ) &&
@@ -277,17 +315,76 @@ class AttachmentImporter implements Importer {
             // Manipulate image exif data.
             $this->strip_unsupported_exif_data( $local_image, $error_handler );
         }
+    }
 
-        // Get file from local temp folder.
-        $file_content = file_get_contents( $local_image, false, $stream_context ); // phpcs:ignore
+    /**
+     * Strip exif by file extension.
+     *
+     * @param string       $local_image Local image path.
+     * @param string       $attachment_src Source file url.
+     * @param ErrorHandler $error_handler An error handler.
+     *
+     * @return array The response array from wp_upload_bits().
+     */
+    private function strip_exif_by_file_extension( $local_image, $attachment_src, $error_handler ) {
 
-        // Upload file to uploads.
-        $upload = wp_upload_bits( $file_name, null, $file_content );
+        // Get filename from the url and remove query params.
+        $file_name = basename( parse_url( $attachment_src, PHP_URL_PATH ) );
 
-        // After upload process we are free to delete the tmp image.
-        unlink( $local_image );
+        // Exif related variables
+        $file_extension = $this->get_file_extension_from_src( $attachment_src );
 
-        return $upload;
+        // If not valid extension found skip.
+        if ( empty( $file_extension ) ) {
+            return;
+        }
+
+        $exif_supported_file_extensions = [
+            'gif',
+            'jpeg',
+            'png',
+            'swf',
+            'psd',
+            'bmp',
+            'tiff',
+            'tiff',
+            'jpc',
+            'jp2',
+            'jpx',
+            'jb2',
+            'swc',
+            'iff',
+            'wbmp',
+            'xbm',
+            'ico',
+            'webp',
+        ];
+
+        // If exif_read_data is callable and file type could contain exif data.
+        if (
+            is_callable( 'exif_read_data' ) &&
+            in_array( $file_extension, $exif_supported_file_extensions, true )
+        ) {
+            // Manipulate image exif data.
+            $this->strip_unsupported_exif_data( $local_image, $error_handler );
+        }
+    }
+
+    /**
+     * Get file extension from the url.
+     *
+     * @param string $attachment_src File URL.
+     * @return string File extension.
+     */
+    private function get_file_extension_from_src( $attachment_src ) {
+
+        $parsed_url = parse_url( $attachment_src );
+
+        // Get the path component from the parsed URL.
+        $path = $parsed_url['path'] ?? '';
+
+        // Extract the file extension from the path.
+        $file_extension = pathinfo( $path, PATHINFO_EXTENSION ) ?? '';
     }
 
     /**
