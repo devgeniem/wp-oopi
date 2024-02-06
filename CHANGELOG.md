@@ -6,11 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-### Changed
+## [Released]
 
+## [1.3.1] - 2024-01-29
+
+### Changed
 - Enabled PHP 8.0 and PHP 8.1 usage #18
 
-## [Released]
+### Fixed
+- Fix PHP 8 deprecation. #25
 
 ## [1.3.0] - 2023-08-01
 - Fixed the issue https://github.com/devgeniem/wp-oopi/issues/23 If OOPI_IGNORE_SSL has been enabled and the certificate on the source site is invalid, the exif_imagetype() function cannot be used in the AttachmentImporter.
