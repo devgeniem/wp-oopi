@@ -96,6 +96,11 @@ class AttachmentImporter implements Importer {
                     $error_handler
                 );
 
+                // Fail fast if there isn't an url.
+                if ( empty( $upload['url'] ) ) {
+                    return null;
+                }
+
                 // Something went wrong.
                 if ( ! empty( $upload['error'] ) ) {
                     $error_handler->set_error(
@@ -212,6 +217,12 @@ class AttachmentImporter implements Importer {
         string $attachment_src,
         ErrorHandler $error_handler
     ) {
+
+        // Fail fast if image doesn't exist.
+        if ( file_exists( $attachment_src ) === false ) {
+            return;
+        }
+
         $stream_context = null;
 
         // If you want to ignore SSL Certificate chain errors, or just yeet it,
