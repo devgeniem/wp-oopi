@@ -49,7 +49,9 @@ class AttachmentImporter implements Importer {
             Storage::get_post_id_by_oopi_id(
                 $oopi_id
             );
-
+/* var_dump( 'oopi_id: ' . $oopi_id );
+var_dump( $attachment_src );
+var_dump( $attachment_post_id ); */
         $title       = $importable->get_title();
         $description = $importable->get_description();
         $caption     = $importable->get_caption();
@@ -219,7 +221,7 @@ class AttachmentImporter implements Importer {
     ) {
 
         // Fail fast if image doesn't exist.
-        if ( file_exists( $attachment_src ) === false ) {
+        if ( $this->remote_file_exists( $attachment_src ) === false ) {
             return;
         }
 
@@ -272,6 +274,46 @@ class AttachmentImporter implements Importer {
         unlink( $local_image );
 
         return $upload;
+    }
+
+    /**
+     * Remote file exists.
+     *
+     * @param string $remote_file_url
+     * @return bool True if the file exists otherwise false.
+     */
+    private function remote_file_exists( string $remote_file_url ) : bool {
+
+        $status_code = $this->get_http_status_code( $remote_file_url );
+
+        // Only 200 will be ok here.
+        if ( empty( $status_code ) || $status_code !== 200 ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get HTTP status code.
+     *
+     * @param string $remote_file_url
+     * @return null|int
+     */
+    private function get_http_status_code( string $remote_file_url ) {
+
+        $file_headers = @get_headers( $remote_file_url, 1 );
+
+        if ( $file_headers === false ) {
+            return null;
+        }
+
+        // If there are redirects, the last status code is the effective one.
+        $status_lines = is_array( $file_headers[0] ) ? end( $file_headers[0] ) : $file_headers[0];
+
+        preg_match( '{HTTP/\d\.\d\s+(\d+)}', $status_lines, $match );
+
+        return isset( $match[1]) ? (int)$match[1] : null;
     }
 
     /**
