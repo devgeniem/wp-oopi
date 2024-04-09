@@ -49,9 +49,7 @@ class AttachmentImporter implements Importer {
             Storage::get_post_id_by_oopi_id(
                 $oopi_id
             );
-/* var_dump( 'oopi_id: ' . $oopi_id );
-var_dump( $attachment_src );
-var_dump( $attachment_post_id ); */
+
         $title       = $importable->get_title();
         $description = $importable->get_description();
         $caption     = $importable->get_caption();
