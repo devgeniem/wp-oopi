@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
-## [1.3.2] - 2024-04-08
+## [1.3.2] - 2024-04-15
 
 ### Changed
 - Fix issue with nonexistent attachments. Fixes the situation where the importer might fail with the image that doesn't exist.
