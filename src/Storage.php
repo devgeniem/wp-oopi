@@ -120,8 +120,8 @@ class Storage {
     /**
      * Delete a post by Oopi id
      *
-     * @param  int     $oopi_id      Oopi id.
-     * @param  boolean $force_delete Set as false, if you wish to trash instead of deleting.
+     * @param  int|string $oopi_id      Oopi id.
+     * @param  boolean    $force_delete Set as false, if you wish to trash instead of deleting.
      *
      * @return mixed The post object (if it was deleted or moved to the trash successfully)
      *               or false (failure). If the post was moved to the trash,

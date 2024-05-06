@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
+## [1.3.3] - 2024-05-06
+
+### Changed
+- Update Composer dependencies.
+- Setup PHPCS rules.
+- Change Storage::delete_post() parameter type hint.
+
 ## [1.3.2] - 2024-04-15
 
 ### Changed
