@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
+## [1.4.0] - 2024-05-08
+
+### Changed
+- Move basic functionality to its own class inside src directory to simplify PSR-4 autoloading.
+
 ## [1.3.3] - 2024-05-06
 
 ### Changed
