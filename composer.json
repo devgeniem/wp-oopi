@@ -30,7 +30,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Geniem\\Oopi\\": ["src/", "plugin.php"]
+            "Geniem\\Oopi\\": "src/"
         }
     },
     "require-dev": {

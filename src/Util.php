@@ -5,7 +5,9 @@
 
 namespace Geniem\Oopi;
 
-use Geniem\Oopi\Interfaces\ErrorHandler;/**
+use Geniem\Oopi\Interfaces\ErrorHandler;
+
+/**
  * Class Util
  * A collection of utility functions.
  *
