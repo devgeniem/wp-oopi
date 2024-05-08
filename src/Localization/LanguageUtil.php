@@ -56,7 +56,7 @@ class LanguageUtil {
         $activated_i18n_plugin = self::get_activated_plugin();
 
         // If no translation plugin was detected.
-        if ( $activated_i18n_plugin === false ) {
+        if ( $activated_i18n_plugin === null ) {
             return false;
         }
 
