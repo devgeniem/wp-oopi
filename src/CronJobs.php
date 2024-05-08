@@ -39,7 +39,7 @@ class CronJobs {
     /**
      * Return the cronjobs.
      *
-     * @return array
+     * @return list<class-string>
      */
     public static function get_cronjobs() : array {
         return [
