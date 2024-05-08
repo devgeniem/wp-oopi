@@ -25,7 +25,7 @@
     "license": "GPL-3.0-or-later",
     "minimum-stability": "stable",
     "require": {
-        "php": ">=7.4 || ^8.0 || ^8.1",
+        "php": ">=7.4 || ^8.0 || ^8.1 || ^8.2",
         "composer/installers": "^1.0.12 || ^2"
     },
     "autoload": {
@@ -36,11 +36,13 @@
     "require-dev": {
         "roave/security-advisories": "dev-latest",
         "10up/wp_mock": "^0.4.2",
-        "phpunit/phpunit": "^9"
+        "phpunit/phpunit": "^9",
+        "devgeniem/geniem-rules-codesniffer": "^1.2"
     },
     "config": {
         "allow-plugins": {
-            "composer/installers": true
+            "composer/installers": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }
