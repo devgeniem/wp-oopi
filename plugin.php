@@ -12,19 +12,6 @@
 
 namespace Geniem\Oopi;
 
-use Geniem\Oopi\Exception\TypeException;
-use Geniem\Oopi\Importable\AttachmentImportable;
-use Geniem\Oopi\Importable\PostImportable;
-use Geniem\Oopi\Importable\TermImportable;
-use Geniem\Oopi\Importer\AttachmentImporter;
-use Geniem\Oopi\Importer\PostImporter;
-use Geniem\Oopi\Importer\TermImporter;
-use Geniem\Oopi\Interfaces\Importable;
-use Geniem\Oopi\Interfaces\Importer;
-use Geniem\Oopi\Localization\LanguageUtil;
-use ReflectionClass;
-use ReflectionException;
-
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
