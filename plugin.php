@@ -3,7 +3,7 @@
  * Plugin Name: Oopi
  * Plugin URI:  https://github.com/devgeniem/wp-oopi
  * Description: Oopi is an object-oriented developer friendly WordPress importer.
- * Version:     1.4.0
+ * Version:     1.4.1
  * Author:      Geniem
  * Author URI:  http://www.github.com/devgeniem
  * License:     GPL3
