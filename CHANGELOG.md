@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Released]
 
+## [1.4.1] - 2024-10-10
+
+### Fixed
+- Change return type of get_value() to mixed #37
+
 ## [1.4.0] - 2024-05-08
 
 ### Changed

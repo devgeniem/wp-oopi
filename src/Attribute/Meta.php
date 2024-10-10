@@ -69,9 +69,9 @@ abstract class Meta implements Attribute {
     /**
      * Get the value.
      *
-     * @return string
+     * @return mixed
      */
-    public function get_value(): string {
+    public function get_value() {
         return $this->value;
     }
 
