@@ -300,7 +300,7 @@ class AttachmentImportable implements Importable {
     /**
      * Set the parent's WP id for the attachment.
      *
-     * @param int|null $parent_wp_id The parent WP id.
+     * @param int $parent_wp_id The parent WP id.
      *
      * @return AttachmentImportable Return self to enable chaining.
      */
