@@ -23,9 +23,14 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.1",
-        "composer/installers": "^1.0.12"
+        "composer/installers": "^2.0"
     },
     "autoload": {
         "psr-4": {"Geniem\\Oopi\\": "src/"}
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
     }
 }
